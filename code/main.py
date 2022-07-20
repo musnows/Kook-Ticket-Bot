@@ -1,5 +1,6 @@
 # encoding: utf-8:
 import json
+from unicodedata import category
 import requests
 import aiohttp
 
@@ -26,6 +27,9 @@ async def world(msg: Message):
 
 ################################以下是给ticket功能的内容########################################
 
+Txt_ID = '5792016130690641' # ticket申请按钮的文字频道id
+Category_ID = '5707984316635077' #被隐藏的分组id 
+
 # ticket系统,发送卡片消息
 @bot.command()
 async def ticket(msg: Message):
@@ -39,7 +43,7 @@ async def ticket(msg: Message):
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def print_btn(b: Bot, e: Event):
     # 判断是否为ticket申请频道的id（文字频道id）
-    if e.body['target_id'] != '5792016130690641':
+    if e.body['target_id'] != Txt_ID:
         return 
     print(e.body)
     global dad,headers
@@ -77,7 +81,7 @@ async def print_btn(b: Bot, e: Event):
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_close(b: Bot, e: Event):
     # 避免与tiket申请按钮冲突（文字频道id）
-    if e.body['target_id'] == '5792016130690641':
+    if e.body['target_id'] == Txt_ID:
         return 
     
     global dad,headers
@@ -87,7 +91,7 @@ async def btn_close(b: Bot, e: Event):
         async with session.post(url1, data=params1,headers=headers) as response:
                 ret1=json.loads(await response.text())
     #判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
-    if ret1['data']['parent_id'] != '5707984316635077':
+    if ret1['data']['parent_id'] != Category_ID:
         return 
 
     url2=dad+'/api/v3/channel/delete'#删除频道
@@ -100,38 +104,64 @@ async def btn_close(b: Bot, e: Event):
 ################################以下是给用户上色功能的内容########################################
 
 # 设置自动上色event的服务器id和消息id
-Guild_ID = '3566823018281801'
-Msg_ID = '6fec1aeb-9d5c-4642-aa95-862e3db8aa61'
+Guild_ID = '3280131482359624'
+Msg_ID_1 = 'd244b380-0451-46fd-b7d2-263640813974'
+Msg_ID_2 = 'd244b380-0451-46fd-b7d2-263640813974'
 
 # 用于记录使用表情回应获取ID颜色的用户
-def save_userid_color(userid:str,emoji:str):
-     flag=0
-     # 需要先保证原有txt里面没有保存该用户的id，才进行追加
-     with open("./config/color_idsave.txt", 'r',encoding='utf-8') as fr1:
-        lines=fr1.readlines()   
-     #使用r+同时读写（有bug）
-        for line in lines:
-            v = line.strip().split(':')
-            if userid == v[0]:
-                flag=1 #因为用户已经回复过表情，将flag置为1
-                fr1.close()
-                return flag
-     fr1.close()
-     #原有txt内没有该用户信息，进行追加操作
-     if flag==0:
-        fw2 = open("./config/color_idsave.txt",'a+',encoding='utf-8')
-        fw2.write(userid + ':' + emoji + '\n')
-        fw2.close()
+def save_userid_color(userid:str,d:int,emoji:str):
+    flag=0
+    if d ==1:
+        # 需要先保证原有txt里面没有保存该用户的id，才进行追加
+        with open("./config/idsave_1.txt", 'r',encoding='utf-8') as fr1:
+            lines=fr1.readlines()   
+        #使用r+同时读写（有bug）
+            for line in lines:
+                v = line.strip().split(':')
+                if userid == v[0]:
+                    flag=1 #因为用户已经回复过表情，将flag置为1
+                    fr1.close()
+                    return flag
+        fr1.close()
+        #原有txt内没有该用户信息，进行追加操作
+        if flag==0:
+            fw2 = open("./config/idsave_1.txt",'a+',encoding='utf-8')
+            fw2.write(userid + ':' + emoji + '\n')
+            fw2.close()
+        return flag
+    elif d == 2:
+        # 需要先保证原有txt里面没有保存该用户的id，才进行追加
+        with open("./config/idsave_2.txt", 'r',encoding='utf-8') as fr1:
+            lines=fr1.readlines()   
+        #使用r+同时读写（有bug）
+            for line in lines:
+                v = line.strip().split(':')
+                if userid == v[0]:
+                    flag=1 #因为用户已经回复过表情，将flag置为1
+                    fr1.close()
+                    return flag
+        fr1.close()
+        #原有txt内没有该用户信息，进行追加操作
+        if flag==0:
+            fw2 = open("./config/idsave_2.txt",'a+',encoding='utf-8')
+            fw2.write(userid + ':' + emoji + '\n')
+            fw2.close()
+        return flag
      
-     return flag
 
 # # 在不修改代码的前提下设置上色功能的服务器和监听消息
 @bot.command()
-async def Color_Set_GM(msg: Message,Card_Msg_id:str):
-    global Guild_ID,Msg_ID #需要声明全局变量
+async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
+    global Guild_ID,Msg_ID_1,Msg_ID_2 #需要声明全局变量
     Guild_ID = msg.ctx.guild.id
-    Msg_ID = Card_Msg_id
-    await msg.reply(f'颜色监听服务器更新为 {Guild_ID}\n监听消息更新为 {Msg_ID}\n')
+    if d == 1:
+        Msg_ID_1 = Card_Msg_id
+        await msg.reply(f'监听服务器更新为 {Guild_ID}\n监听消息1更新为 {Msg_ID_1}\n')
+    elif d == 2:
+        Msg_ID_2 = Card_Msg_id
+        await msg.reply(f'监听服务器更新为 {Guild_ID}\n监听消息2更新为 {Msg_ID_2}\n')
+
+
 
 # 判断消息的emoji回应，并给予不同角色
 @bot.on_event(EventTypes.ADDED_REACTION)
@@ -140,37 +170,66 @@ async def update_reminder(b: Bot, event: Event):
     #print(event.body)# 这里的打印eventbody的完整内容，包含emoji_id
 
     #将msg_id和event.body msg_id进行对比，确认是我们要的那一条消息的表情回应
-    if event.body['msg_id'] == Msg_ID:
+    #第一个设置
+    if event.body['msg_id'] == Msg_ID_1:
         channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
         s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
         # 判断用户回复的emoji是否合法
         emoji=event.body["emoji"]['id']
         flag=0
-        with open("./config/color_emoji.txt", 'r',encoding='utf-8') as fr1:
+        with open("./config/emoji1.txt", 'r',encoding='utf-8') as fr1:
             lines=fr1.readlines()
             for line in lines:
                 v = line.strip().split(':')
                 if emoji == v[0]:
                     flag=1 #确认用户回复的emoji合法 
-                    ret = save_userid_color(event.body['user_id'],event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
+                    ret = save_userid_color(event.body['user_id'], 1, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
                     if ret ==1: #已经获取过角色
-                        await b.send(channel,f'你已经设置过你的ID颜色啦！修改要去找管理员哦~',temp_target_id=event.body['user_id'])
+                        await b.send(channel,f'你已经设置过你的角色，修改请联系管理。',temp_target_id=event.body['user_id'])
                         fr1.close()
                         return
                     else:
                         role=int(v[1])
-                        await g.grant_role(s,role)
-                        await b.send(channel, f'阿狸已经给你上了 {emoji} 对应的颜色啦~',temp_target_id=event.body['user_id'])
+                        #await g.grant_role(s,role)
+                        await b.send(channel, f'bot已经给你上了 {emoji} 对应的角色',temp_target_id=event.body['user_id'])
         fr1.close()
         if flag == 0: #回复的表情不合法
             await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
+    
+    # 第二个设置
+    elif event.body['msg_id'] == Msg_ID_2:
+        channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
+        s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
+        # 判断用户回复的emoji是否合法
+        emoji=event.body["emoji"]['id']
+        flag=0
+        with open("./config/emoji2.txt", 'r',encoding='utf-8') as fr1:
+            lines=fr1.readlines()
+            for line in lines:
+                v = line.strip().split(':')
+                if emoji == v[0]:
+                    flag=1 #确认用户回复的emoji合法 
+                    ret = save_userid_color(event.body['user_id'], 2, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
+                    if ret ==1: #已经获取过角色
+                        await b.send(channel,f'你已经设置过你的角色，修改请联系管理。',temp_target_id=event.body['user_id'])
+                        fr1.close()
+                        return
+                    else:
+                        role=int(v[1])
+                        #await g.grant_role(s,role)
+                        await b.send(channel, f'bot已经给你上了 {emoji} 对应的角色',temp_target_id=event.body['user_id'])
+        fr1.close()
+        if flag == 0: #回复的表情不合法
+            await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
+
+
 
 
 # 给用户上色（在发出消息后，机器人自动添加回应）
 @bot.command()
 async def Color_Set(msg: Message):
     cm = CardMessage()
-    c1 = Card(Module.Header('在下面添加回应，来设置你的id颜色吧！'), Module.Context('五颜六色等待上线...'))
+    c1 = Card(Module.Header('在下面添加回应，来设置你的角色吧！'), Module.Context('更多角色等待上线...'))
     c1.append(Module.Divider())
     c1.append(Module.Section('「:pig:」粉色  「:heart:」红色\n「:black_heart:」黑色  「:yellow_heart:」黄色\n'))
     c1.append(Module.Section('「:blue_heart:」蓝色  「:purple_heart:」紫色\n「:green_heart:」绿色  「:+1:」默认\n'))
@@ -189,8 +248,6 @@ async def Color_Set(msg: Message):
             v = line.strip().split(':')
             await setMSG.add_reaction(v[0])
     fr1.close()
-
-
 
 
 # 凭证传好了、机器人新建好了、指令也注册完了

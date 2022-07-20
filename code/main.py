@@ -1,6 +1,5 @@
 # encoding: utf-8:
 import json
-from unicodedata import category
 import requests
 import aiohttp
 
@@ -129,6 +128,7 @@ def save_userid_color(userid:str,d:int,emoji:str):
             fw2.write(userid + ':' + emoji + '\n')
             fw2.close()
         return flag
+
     elif d == 2:
         # 需要先保证原有txt里面没有保存该用户的id，才进行追加
         with open("./config/idsave_2.txt", 'r',encoding='utf-8') as fr1:
@@ -149,7 +149,7 @@ def save_userid_color(userid:str,d:int,emoji:str):
         return flag
      
 
-# # 在不修改代码的前提下设置上色功能的服务器和监听消息
+# 在不修改代码的前提下设置上色功能的服务器和监听消息
 @bot.command()
 async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
     global Guild_ID,Msg_ID_1,Msg_ID_2 #需要声明全局变量
@@ -162,16 +162,14 @@ async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
         await msg.reply(f'监听服务器更新为 {Guild_ID}\n监听消息2更新为 {Msg_ID_2}\n')
 
 
-
 # 判断消息的emoji回应，并给予不同角色
 @bot.on_event(EventTypes.ADDED_REACTION)
 async def update_reminder(b: Bot, event: Event):
     g = await b.fetch_guild(Guild_ID)# 填入服务器id
     #print(event.body)# 这里的打印eventbody的完整内容，包含emoji_id
 
-    #将msg_id和event.body msg_id进行对比，确认是我们要的那一条消息的表情回应
-    #第一个设置
-    if event.body['msg_id'] == Msg_ID_1:
+    # 第一个设置
+    if event.body['msg_id'] == Msg_ID_1:  #将msg_id和event.body msg_id进行对比，确认是我们要的那一条消息的表情回应
         channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
         s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
         # 判断用户回复的emoji是否合法
@@ -216,15 +214,14 @@ async def update_reminder(b: Bot, event: Event):
                         return
                     else:
                         role=int(v[1])
-                        #await g.grant_role(s,role)
+                        await g.grant_role(s,role)
                         await b.send(channel, f'bot已经给你上了 {emoji} 对应的角色',temp_target_id=event.body['user_id'])
         fr1.close()
         if flag == 0: #回复的表情不合法
             await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
 
 
-
-
+# 由于需求不同，该功能暂时弃用
 # 给用户上色（在发出消息后，机器人自动添加回应）
 @bot.command()
 async def Color_Set(msg: Message):

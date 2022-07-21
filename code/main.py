@@ -193,7 +193,7 @@ async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
 @bot.on_event(EventTypes.ADDED_REACTION)
 async def update_reminder(b: Bot, event: Event):
     g = await b.fetch_guild(Guild_ID)# 填入服务器id
-    print(event.body)# 这里的打印eventbody的完整内容，包含emoji_id
+    #print(event.body)# 这里的打印eventbody的完整内容，包含emoji_id
 
     channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
     s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)

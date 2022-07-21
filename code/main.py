@@ -26,8 +26,8 @@ async def world(msg: Message):
 
 ################################以下是给ticket功能的内容########################################
 
-Txt_ID = '5792016130690641' # ticket申请按钮的文字频道id
-Category_ID = '5707984316635077' #被隐藏的分组id 
+ListTK = ['4794121363928781','7843220427378656','0'] # ticket申请按钮的文字频道id
+Category_ID = '8267613700948160' #被隐藏的分组id 
 
 # ticket系统,发送卡片消息
 @bot.command()
@@ -41,48 +41,50 @@ async def ticket(msg: Message):
 # 监看工单系统
 # 相关api文档 https://developer.kaiheila.cn/doc/http/channel#%E5%88%9B%E5%BB%BA%E9%A2%91%E9%81%93
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
-async def print_btn(b: Bot, e: Event):
+async def btn_ticket(b: Bot, e: Event):
     # 判断是否为ticket申请频道的id（文字频道id）
-    if e.body['target_id'] != Txt_ID:
-        return 
-    #print(e.body)
-    global dad,headers
-    url1=dad+"/api/v3/channel/create"# 创建频道
-    params1 = {"guild_id": e.body['guild_id'] ,"parent_id":Category_ID,"name":e.body['user_info']['username']}
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url1, data=params1,headers=headers) as response:
-                ret1=json.loads(await response.text())
-                #print(ret1["data"]["id"])
+    global ListTK
+    if e.body['target_id'] in ListTK:
+        #print(e.body)
+        global dad,headers
+        url1=dad+"/api/v3/channel/create"# 创建频道
+        params1 = {"guild_id": e.body['guild_id'] ,"parent_id":Category_ID,"name":e.body['user_info']['username']}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url1, data=params1,headers=headers) as response:
+                    ret1=json.loads(await response.text())
+                    #print(ret1["data"]["id"])
 
-    url2=dad+"/api/v3/channel-role/create"#创建角色权限
-    params2 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id']}
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url2, data=params2,headers=headers) as response:
-                ret2=json.loads(await response.text())
-                #print(f"ret2: {ret2}")
-    
-    # 服务器角色权限值见 https://developer.kaiheila.cn/doc/http/guild-role
-    url3=dad+"/api/v3/channel-role/update"#设置角色权限
-    params3 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id'],"allow":2048}
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url3, data=params3,headers=headers) as response:
-                ret3=json.loads(await response.text())
-                #print(f"ret3: {ret3}")
-    
-    cm = CardMessage()
-    c1 = Card(Module.Section(Element.Text(f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n(rol)4693884(rol)\n",Types.Text.KMD)))
-    c1.append(Module.Section('帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n'))
-    c1.append(Module.ActionGroup(Element.Button('关闭', Types.Click.RETURN_VAL,theme=Types.Theme.DANGER)))
-    cm.append(c1)
-    channel = await b.fetch_public_channel(ret1["data"]["id"]) 
-    sent = await bot.send(channel,cm)
-    return sent
+        url2=dad+"/api/v3/channel-role/create"#创建角色权限
+        params2 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id']}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url2, data=params2,headers=headers) as response:
+                    ret2=json.loads(await response.text())
+                    #print(f"ret2: {ret2}")
+        
+        # 服务器角色权限值见 https://developer.kaiheila.cn/doc/http/guild-role
+        url3=dad+"/api/v3/channel-role/update"#设置角色权限
+        params3 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id'],"allow":2048}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url3, data=params3,headers=headers) as response:
+                    ret3=json.loads(await response.text())
+                    #print(f"ret3: {ret3}")
+        
+        cm = CardMessage()# 这里需要修改卡片消息中处理本事件的管理员角色id，(rol)角色id(rol)
+        c1 = Card(Module.Section(Element.Text(f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n(rol)351607(rol) (rol)4780087(rol) (rol)4780088(rol) (rol)4780089(rol)\n",Types.Text.KMD)))
+        c1.append(Module.Section('帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n'))
+        c1.append(Module.ActionGroup(Element.Button('关闭', Types.Click.RETURN_VAL,theme=Types.Theme.DANGER)))
+        cm.append(c1)
+        channel = await b.fetch_public_channel(ret1["data"]["id"]) 
+        sent = await bot.send(channel,cm)
+        return sent
+    else:
+        return
 
 # 监看关闭情况
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_close(b: Bot, e: Event):
     # 避免与tiket申请按钮冲突（文字频道id）
-    if e.body['target_id'] == Txt_ID:
+    if e.body['target_id'] in ListTK:
         return 
     
     global dad,headers
@@ -105,9 +107,10 @@ async def btn_close(b: Bot, e: Event):
 ################################以下是给用户上色功能的内容########################################
 
 # 设置自动上色event的服务器id和消息id
-Guild_ID = '3280131482359624'
-Msg_ID_1 = 'd244b380-0451-46fd-b7d2-263640813974'
-Msg_ID_2 = 'd244b380-0451-46fd-b7d2-263640813974'
+Guild_ID = '1573724356603748'
+Msg_ID_1 = '0a4b9403-de0b-494e-b216-3d1dbe957d0f'
+Msg_ID_2 = '5d92f952-15c1-46a4-b370-41a9cf739e50'
+Msg_ID_3 = 'd4dbb164-bd80-469b-9473-8285a9c91e0d'
 
 # 用于记录使用表情回应获取ID颜色的用户
 def save_userid_color(userid:str,d:int,emoji:str):
@@ -149,12 +152,31 @@ def save_userid_color(userid:str,d:int,emoji:str):
             fw2.write(userid + ':' + emoji + '\n')
             fw2.close()
         return flag
+
+    elif d == 3:
+        # 需要先保证原有txt里面没有保存该用户的id，才进行追加
+        with open("./config/idsave_3.txt", 'r',encoding='utf-8') as fr1:
+            lines=fr1.readlines()   
+        #使用r+同时读写（有bug）
+            for line in lines:
+                v = line.strip().split(':')
+                if userid == v[0]:
+                    flag=1 #因为用户已经回复过表情，将flag置为1
+                    fr1.close()
+                    return flag
+        fr1.close()
+        #原有txt内没有该用户信息，进行追加操作
+        if flag==0:
+            fw2 = open("./config/idsave_3.txt",'a+',encoding='utf-8')
+            fw2.write(userid + ':' + emoji + '\n')
+            fw2.close()
+        return flag
      
 
 # 在不修改代码的前提下设置上色功能的服务器和监听消息
 @bot.command()
 async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
-    global Guild_ID,Msg_ID_1,Msg_ID_2 #需要声明全局变量
+    global Guild_ID,Msg_ID_1,Msg_ID_2,Msg_ID_3 #需要声明全局变量
     Guild_ID = msg.ctx.guild.id
     if d == 1:
         Msg_ID_1 = Card_Msg_id
@@ -162,20 +184,24 @@ async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
     elif d == 2:
         Msg_ID_2 = Card_Msg_id
         await msg.reply(f'监听服务器更新为 {Guild_ID}\n监听消息2更新为 {Msg_ID_2}\n')
+    elif d == 3:
+        Msg_ID_3 = Card_Msg_id
+        await msg.reply(f'监听服务器更新为 {Guild_ID}\n监听消息3更新为 {Msg_ID_3}\n')
 
 
 # 判断消息的emoji回应，并给予不同角色
 @bot.on_event(EventTypes.ADDED_REACTION)
 async def update_reminder(b: Bot, event: Event):
     g = await b.fetch_guild(Guild_ID)# 填入服务器id
-    #print(event.body)# 这里的打印eventbody的完整内容，包含emoji_id
+    print(event.body)# 这里的打印eventbody的完整内容，包含emoji_id
 
-    # 第一个设置
+    channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
+    s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
+    # 判断用户回复的emoji是否合法
+    emoji=event.body["emoji"]['id']
+ 
+    # 第一个消息
     if event.body['msg_id'] == Msg_ID_1:  #将msg_id和event.body msg_id进行对比，确认是我们要的那一条消息的表情回应
-        channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
-        s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
-        # 判断用户回复的emoji是否合法
-        emoji=event.body["emoji"]['id']
         flag=0
         with open("./config/emoji1.txt", 'r',encoding='utf-8') as fr1:
             lines=fr1.readlines()
@@ -185,23 +211,23 @@ async def update_reminder(b: Bot, event: Event):
                     flag=1 #确认用户回复的emoji合法 
                     ret = save_userid_color(event.body['user_id'], 1, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
                     if ret ==1: #已经获取过角色
-                        await b.send(channel,f'你已经设置过你的角色，修改请联系管理。',temp_target_id=event.body['user_id'])
+                        await b.send(channel,f'你已经设置过你的`游戏角色`角色，修改请联系管理。',temp_target_id=event.body['user_id'])
                         fr1.close()
                         return
                     else:
                         role=int(v[1])
-                        #await g.grant_role(s,role)
-                        await b.send(channel, f'bot已经给你上了 {emoji} 对应的角色',temp_target_id=event.body['user_id'])
+                        await g.grant_role(s,role)
+                        await b.send(channel, f"bot已经给你上了 {event.body['emoji']['name']} 对应的角色",temp_target_id=event.body['user_id'])
         fr1.close()
         if flag == 0: #回复的表情不合法
             await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
     
-    # 第二个设置
+    # 第二个消息
     elif event.body['msg_id'] == Msg_ID_2:
-        channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
-        s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
-        # 判断用户回复的emoji是否合法
-        emoji=event.body["emoji"]['id']
+        # channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
+        # s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
+        # # 判断用户回复的emoji是否合法
+        # emoji=event.body["emoji"]['id']
         flag=0
         with open("./config/emoji2.txt", 'r',encoding='utf-8') as fr1:
             lines=fr1.readlines()
@@ -211,13 +237,35 @@ async def update_reminder(b: Bot, event: Event):
                     flag=1 #确认用户回复的emoji合法 
                     ret = save_userid_color(event.body['user_id'], 2, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
                     if ret ==1: #已经获取过角色
-                        await b.send(channel,f'你已经设置过你的角色，修改请联系管理。',temp_target_id=event.body['user_id'])
+                        await b.send(channel,f'你已经设置过你的`休闲游戏`角色，修改请联系管理。',temp_target_id=event.body['user_id'])
                         fr1.close()
                         return
                     else:
                         role=int(v[1])
                         await g.grant_role(s,role)
-                        await b.send(channel, f'bot已经给你上了 {emoji} 对应的角色',temp_target_id=event.body['user_id'])
+                        await b.send(channel, f"bot已经给你上了 {event.body['emoji']['name']} 对应的角色",temp_target_id=event.body['user_id'])
+        fr1.close()
+        if flag == 0: #回复的表情不合法
+            await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
+    
+    # 第三个消息
+    elif event.body['msg_id'] == Msg_ID_3:
+        flag=0
+        with open("./config/emoji3.txt", 'r',encoding='utf-8') as fr1:
+            lines=fr1.readlines()
+            for line in lines:
+                v = line.strip().split(':')
+                if emoji == v[0]:
+                    flag=1 #确认用户回复的emoji合法 
+                    ret = save_userid_color(event.body['user_id'], 3, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
+                    if ret ==1: #已经获取过角色
+                        await b.send(channel,f'你已经设置过你的`社会身份`角色，修改请联系管理。',temp_target_id=event.body['user_id'])
+                        fr1.close()
+                        return
+                    else:
+                        role=int(v[1])
+                        await g.grant_role(s,role)
+                        await b.send(channel, f"bot已经给你上了 {event.body['emoji']['name']} 对应的角色",temp_target_id=event.body['user_id'])
         fr1.close()
         if flag == 0: #回复的表情不合法
             await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
@@ -241,7 +289,7 @@ async def Color_Set(msg: Message):
         extra={'guild_id': msg.ctx.guild.id,'channel_name': msg.ctx.channel,'author':{'id': bot.me.id}}) 
         # extra部分留空也行
     # 让bot给卡片消息添加对应emoji回应
-    with open("./config/color_emoji.txt", 'r',encoding='utf-8') as fr1:
+    with open("./config/emoji_color.txt", 'r',encoding='utf-8') as fr1:
         lines = fr1.readlines()   
         for line in lines:
             v = line.strip().split(':')

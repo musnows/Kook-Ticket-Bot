@@ -23,6 +23,40 @@ headers={f'Authorization': f"Bot {Botoken}"}
 @bot.command(name='hello')
 async def world(msg: Message):
     await msg.reply('world!')
+    
+    
+#####################################机器人动态#########################################
+ 
+from status import status_active_game,status_active_music,status_delete
+
+# 开始打游戏
+@bot.command()
+async def gaming(msg: Message,game:int):
+    #await bot.client.update_playing_game(3,1)# 英雄联盟
+    if game == 1:    
+        ret = await status_active_game(464053) # 人间地狱
+        await msg.reply(f"{ret['message']}，Bot上号人间地狱啦！")
+    elif game == 2:
+        ret = await status_active_game(3)      # 英雄联盟
+        await msg.reply(f"{ret['message']}，Bot上号LOL啦！")
+    elif game == 3:
+        ret = await status_active_game(23)     # CSGO
+        await msg.reply(f"{ret['message']}，Bot上号CSGO啦！")
+
+# 开始听歌
+@bot.command()
+async def singing(msg: Message,music:str,singer:str):
+        ret = await status_active_music(music,singer) # 瓦洛兰特
+        await msg.reply(f"{ret['message']}，Bot开始听歌啦！")
+    
+# 停止打游戏1/听歌2
+@bot.command(name='sleep')
+async def sleeping(msg: Message,d:int):
+    ret = await status_delete(d)
+    if d ==1:
+        await msg.reply(f"{ret['message']}，Bot下号休息啦!")
+    elif d==2:
+        await msg.reply(f"{ret['message']}，Bot摘下了耳机~")
 
 ################################以下是给ticket功能的内容########################################
 
@@ -193,7 +227,7 @@ async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
 @bot.on_event(EventTypes.ADDED_REACTION)
 async def update_reminder(b: Bot, event: Event):
     g = await b.fetch_guild(Guild_ID)# 填入服务器id
-    #print(event.body)# 这里的打印eventbody的完整内容，包含emoji_id
+    # print(event.body)# 这里的打印eventbody的完整内容，包含emoji_id
 
     channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
     s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
@@ -210,6 +244,7 @@ async def update_reminder(b: Bot, event: Event):
                 if emoji == v[0]:
                     flag=1 #确认用户回复的emoji合法 
                     ret = save_userid_color(event.body['user_id'], 1, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
+                    #ret=0
                     if ret ==1: #已经获取过角色
                         await b.send(channel,f'你已经设置过你的`游戏角色`角色，修改请联系管理。',temp_target_id=event.body['user_id'])
                         fr1.close()
@@ -236,6 +271,7 @@ async def update_reminder(b: Bot, event: Event):
                 if emoji == v[0]:
                     flag=1 #确认用户回复的emoji合法 
                     ret = save_userid_color(event.body['user_id'], 2, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
+                    #ret=0
                     if ret ==1: #已经获取过角色
                         await b.send(channel,f'你已经设置过你的`休闲游戏`角色，修改请联系管理。',temp_target_id=event.body['user_id'])
                         fr1.close()
@@ -258,6 +294,7 @@ async def update_reminder(b: Bot, event: Event):
                 if emoji == v[0]:
                     flag=1 #确认用户回复的emoji合法 
                     ret = save_userid_color(event.body['user_id'], 3, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
+                    #ret=0
                     if ret ==1: #已经获取过角色
                         await b.send(channel,f'你已经设置过你的`社会身份`角色，修改请联系管理。',temp_target_id=event.body['user_id'])
                         fr1.close()
@@ -269,6 +306,10 @@ async def update_reminder(b: Bot, event: Event):
         fr1.close()
         if flag == 0: #回复的表情不合法
             await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
+
+
+
+######################################################################################
 
 
 # 由于需求不同，该功能暂时弃用

@@ -67,6 +67,8 @@ Msg_ID_3 = 'd4dbb164-bd80-469b-9473-8285a9c91e0d'
 
 同时，`L115-170`则是3个不同的idsave文件，用来保存已经领取过角色的用户。这样设计可以让每一个用户只能在一个Msg_ID下领取其中一个角色。避免刷角色的情况。
 
+<img src="./screenshots/role3.png" wight="200px" height="110px">
+
 >更多代码示例，请查看`code/main.py` 的 `L192-L270`
 
 ## The end

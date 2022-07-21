@@ -8,6 +8,7 @@ A ticket bot for KOOK  表单系统机器人
 
 附加功能
 * 通过表情回应给用户添加对应角色
+* 设置bot动态 `游戏/音乐`
 
 ## Requerments
 you need to `pip install` pakages before using this bot

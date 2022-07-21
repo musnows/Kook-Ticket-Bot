@@ -39,15 +39,16 @@ async def ticket(msg: Message):
                     Element.Button('发起ticket',Types.Click.RETURN_VAL)))))
 
 # 监看工单系统
+# 相关api文档 https://developer.kaiheila.cn/doc/http/channel#%E5%88%9B%E5%BB%BA%E9%A2%91%E9%81%93
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def print_btn(b: Bot, e: Event):
     # 判断是否为ticket申请频道的id（文字频道id）
     if e.body['target_id'] != Txt_ID:
         return 
-    print(e.body)
+    #print(e.body)
     global dad,headers
-    url1=dad+"/api/v3/channel/create"#创建频道
-    params1 = {"guild_id": e.body['guild_id'] ,"parent_id":"5707984316635077","name":e.body['user_info']['username']}
+    url1=dad+"/api/v3/channel/create"# 创建频道
+    params1 = {"guild_id": e.body['guild_id'] ,"parent_id":Category_ID,"name":e.body['user_info']['username']}
     async with aiohttp.ClientSession() as session:
         async with session.post(url1, data=params1,headers=headers) as response:
                 ret1=json.loads(await response.text())
@@ -60,6 +61,7 @@ async def print_btn(b: Bot, e: Event):
                 ret2=json.loads(await response.text())
                 #print(f"ret2: {ret2}")
     
+    # 服务器角色权限值见 https://developer.kaiheila.cn/doc/http/guild-role
     url3=dad+"/api/v3/channel-role/update"#设置角色权限
     params3 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id'],"allow":2048}
     async with aiohttp.ClientSession() as session:

@@ -2,6 +2,7 @@
 import json
 import requests
 import aiohttp
+import time
 
 from khl import Bot, Message, EventTypes, Event,Client,PublicMessage
 from khl.card import CardMessage, Card, Module, Element, Types, Struct
@@ -19,9 +20,20 @@ Botoken = config['token']
 headers={f'Authorization': f"Bot {Botoken}"}
 
 
+
+# 在控制台打印msg内容，用作日志
+def logging(msg: Message):
+    now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
+    print(f"[{now_time}] G:{msg.ctx.guild.id} - C:{msg.ctx.channel.id} - Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - content:{msg.content}")
+
+def logging2(e: Event):
+    now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
+    print(f"[{now_time}] Event:{e.body}")
+
 # `/hello`指令，一般用于测试bot是否成功上线
 @bot.command(name='hello')
 async def world(msg: Message):
+    logging(msg)
     await msg.reply('world!')
     
     
@@ -32,6 +44,7 @@ from status import status_active_game,status_active_music,status_delete
 # 开始打游戏
 @bot.command()
 async def gaming(msg: Message,game:int):
+    logging(msg)
     #await bot.client.update_playing_game(3,1)# 英雄联盟
     if game == 1:    
         ret = await status_active_game(464053) # 人间地狱
@@ -46,12 +59,14 @@ async def gaming(msg: Message,game:int):
 # 开始听歌
 @bot.command()
 async def singing(msg: Message,music:str,singer:str):
-        ret = await status_active_music(music,singer) # 瓦洛兰特
-        await msg.reply(f"{ret['message']}，Bot开始听歌啦！")
+    logging(msg)
+    ret = await status_active_music(music,singer)
+    await msg.reply(f"{ret['message']}，Bot开始听歌啦！")
     
 # 停止打游戏1/听歌2
 @bot.command(name='sleep')
 async def sleeping(msg: Message,d:int):
+    logging(msg)
     ret = await status_delete(d)
     if d ==1:
         await msg.reply(f"{ret['message']}，Bot下号休息啦!")
@@ -66,6 +81,7 @@ Category_ID = '8267613700948160' #被隐藏的分组id
 # ticket系统,发送卡片消息
 @bot.command()
 async def ticket(msg: Message):
+    logging(msg)
     await msg.ctx.channel.send(
         CardMessage(
             Card(Module.Section(
@@ -79,7 +95,7 @@ async def btn_ticket(b: Bot, e: Event):
     # 判断是否为ticket申请频道的id（文字频道id）
     global ListTK
     if e.body['target_id'] in ListTK:
-        #print(e.body)
+        logging2(e)
         global dad,headers
         url1=dad+"/api/v3/channel/create"# 创建频道
         params1 = {"guild_id": e.body['guild_id'] ,"parent_id":Category_ID,"name":e.body['user_info']['username']}
@@ -121,6 +137,7 @@ async def btn_close(b: Bot, e: Event):
     if e.body['target_id'] in ListTK:
         return 
     
+    logging2(e)
     global dad,headers
     url1=dad+"/api/v3/channel/view"#获取频道的信息
     params1 = {"target_id": e.body['target_id']}
@@ -210,6 +227,7 @@ def save_userid_color(userid:str,d:int,emoji:str):
 # 在不修改代码的前提下设置上色功能的服务器和监听消息
 @bot.command()
 async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
+    logging(msg)
     global Guild_ID,Msg_ID_1,Msg_ID_2,Msg_ID_3 #需要声明全局变量
     Guild_ID = msg.ctx.guild.id
     if d == 1:
@@ -227,7 +245,7 @@ async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
 @bot.on_event(EventTypes.ADDED_REACTION)
 async def update_reminder(b: Bot, event: Event):
     g = await b.fetch_guild(Guild_ID)# 填入服务器id
-    # print(event.body)# 这里的打印eventbody的完整内容，包含emoji_id
+    logging2(event)#事件日志
 
     channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
     s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
@@ -316,6 +334,7 @@ async def update_reminder(b: Bot, event: Event):
 # 给用户上色（在发出消息后，机器人自动添加回应）
 @bot.command()
 async def Color_Set(msg: Message):
+    logging(msg)
     cm = CardMessage()
     c1 = Card(Module.Header('在下面添加回应，来设置你的角色吧！'), Module.Context('更多角色等待上线...'))
     c1.append(Module.Divider())

@@ -19,7 +19,7 @@ pip install requests
 
 ## Config
 ### 1.bot token
-在 `code/config`路径中添加`config.json`，并在里面填入以下内容来初始化你的Bot
+在 `code/config`路径中添加`config.json`，并在里面填入以下内容来初始化你的Bot（连接方式为`websocket`）
 ```
 {
     "token": " YOUR BOT TOKEN HERE ",

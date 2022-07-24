@@ -28,7 +28,7 @@ def logging(msg: Message):
 
 def logging2(e: Event):
     now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
-    print(f"[{now_time}] Event:{e.body}")
+    print(f"[{now_time}] Event:{e.body}\n")
 
 # `/hello`指令，一般用于测试bot是否成功上线
 @bot.command(name='hello')

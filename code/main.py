@@ -341,7 +341,7 @@ async def card(msg:Message):
     await msg.reply(cm)
 
 # 用来保存定时发出的卡片消息
-BM_Msg_ID = "858e6016-570d-414a-b148-c33526a35404"
+BM_Msg_ID = "d10ead29-c182-47e5-90e7-8a23000c5954"
 
 # 手动更改全局变量中的msgid
 @bot.command()
@@ -356,7 +356,7 @@ async def C_MSG(msg:Message,id:str):
 async def update_Server():
     global BM_Msg_ID 
     cm = await ServerCheck()
-    channel = await bot.fetch_public_channel("5792016130690641")#设置自动更新的频道id
+    channel = await bot.fetch_public_channel("9320542611576733")#设置自动更新的频道id
     sent = await bot.send(channel,cm)
 
     now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())

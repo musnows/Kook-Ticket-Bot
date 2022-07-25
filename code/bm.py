@@ -19,51 +19,49 @@ dad="https://www.kookapp.cn"
 
 # 检查指定服务器并更新
 async def ServerCheck():
-    url = f"https://api.battlemetrics.com/servers?filter[search]=特雷森学园&filter[game]=hll"
+    url = f"https://api.battlemetrics.com/servers/{15701757}"# bm服务器id
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             ret1 = json.loads(await response.text())
-            #print(ret1)
-    for server in ret1['data']:
-        if server['id'] == "15701757":  #指定服务器id
-            print(f"\nGET: {server}\n")
-            # 确认状态情况（依据玩家数量进行判断）
-            emoji = ":green_circle:"
-            if server['attributes']['players'] == 0:
-                emoji = ":red_circle:"
 
-            cm = CardMessage()
-            c = Card(
-                Module.Section(
-                    Element.Text(f"{server['attributes']['name']}",
-                                 Types.Text.KMD),
-                    Element.Image(
-                        src="https://s1.ax1x.com/2022/07/24/jXqRL8.png",
-                        circle=True,
-                        size='sm')))
-            c.append(Module.Divider())
-            c.append(
-                Module.Section(
-                    Struct.Paragraph(
-                        3,
-                        Element.Text(
-                            f"**状态 **\n" + f"{emoji}" + "   \n" + "**地图 **\n" +
-                            f"{server['attributes']['details']['map']}",
-                            Types.Text.KMD),
-                        Element.Text(
-                            f"**服务器ip \n**" + f"{server['attributes']['ip']}" +
-                            "     \n" + "**rank **\n" +
-                            f"#{server['attributes']['rank']}",
-                            Types.Text.KMD),
-                        Element.Text(
-                            f"**当前地区 \n**" +
-                            f"{server['attributes']['country']}" + "    \n" +
-                            "**Players **\n"
-                            f"{server['attributes']['players']}/{server['attributes']['maxPlayers']}",
-                            Types.Text.KMD))))
-            cm.append(c)
-            #await msg.reply(cm)
-            return cm
+        print(f"\nGET: {ret1}\n")
+        # 确认状态情况（依据玩家数量进行判断）
+        emoji = ":green_circle:"
+        if ret1['data']['attributes']['players'] == 0:
+            emoji = ":red_circle:"
+
+        cm = CardMessage()
+        c = Card(
+            Module.Section(
+                Element.Text(f"{ret1['data']['attributes']['name']}",
+                                Types.Text.KMD),
+                Element.Image(
+                    src="https://s1.ax1x.com/2022/07/24/jXqRL8.png",
+                    circle=True,
+                    size='sm')))
+        c.append(Module.Divider())
+        c.append(
+            Module.Section(
+                Struct.Paragraph(
+                    3,
+                    Element.Text(
+                        f"**状态 **\n" + f"{emoji}" + "   \n" + "**地图 **\n" +
+                        f"{ret1['data']['attributes']['details']['map']}",
+                        Types.Text.KMD),
+                    Element.Text(
+                        f"**服务器ip \n**" + f"{ret1['data']['attributes']['ip']}" +
+                        "     \n" + "**rank **\n" +
+                        f"#{ret1['data']['attributes']['rank']}",
+                        Types.Text.KMD),
+                    Element.Text(
+                        f"**当前地区 \n**" +
+                        f"{ret1['data']['attributes']['country']}" + "    \n" +
+                        "**Players **\n"
+                        f"{ret1['data']['attributes']['players']}/{ret1['data']['attributes']['maxPlayers']}",
+                        Types.Text.KMD))))
+        cm.append(c)
+        #await msg.reply(cm)
+        return cm
 
 
 # 查询服务器信息

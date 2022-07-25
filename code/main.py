@@ -356,7 +356,7 @@ async def C_MSG(msg:Message,id:str):
 async def update_Server():
     global BM_Msg_ID 
     cm = await ServerCheck()
-    channel = await bot.fetch_public_channel("9320542611576733")#设置自动更新的频道id
+    channel = await bot.fetch_public_channel("5792016130690641")#设置自动更新的频道id
     sent = await bot.send(channel,cm)
 
     now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())

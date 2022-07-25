@@ -30,12 +30,12 @@ def logging2(e: Event):
     now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
     print(f"[{now_time}] Event:{e.body}\n")
 
+
 # `/hello`指令，一般用于测试bot是否成功上线
 @bot.command(name='hello')
 async def world(msg: Message):
     logging(msg)
     await msg.reply('world!')
-    
     
 #####################################机器人动态#########################################
  
@@ -326,37 +326,60 @@ async def update_reminder(b: Bot, event: Event):
             await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
 
 
+##################################################################################################
 
-######################################################################################
+# 以下是另外一个仓库↓的bm-bot的特殊版本，和tiket系统无关
+# https://github.com/Aewait/Kook-BattleMetrics-Bot
 
+from bm import Search, ServerCheck
 
-# 由于需求不同，该功能暂时弃用
-# 给用户上色（在发出消息后，机器人自动添加回应）
-@bot.command()
-async def Color_Set(msg: Message):
+# 手动显示指定服务器的信息
+@bot.command(name='dsquad')
+async def card(msg:Message):
     logging(msg)
-    cm = CardMessage()
-    c1 = Card(Module.Header('在下面添加回应，来设置你的角色吧！'), Module.Context('更多角色等待上线...'))
-    c1.append(Module.Divider())
-    c1.append(Module.Section('「:pig:」粉色  「:heart:」红色\n「:black_heart:」黑色  「:yellow_heart:」黄色\n'))
-    c1.append(Module.Section('「:blue_heart:」蓝色  「:purple_heart:」紫色\n「:green_heart:」绿色  「:+1:」默认\n'))
-    cm.append(c1)
-    sent = await msg.ctx.channel.send(cm) #接受send的返回值
-    # 自己new一个msg对象    
-    setMSG=PublicMessage(
-        msg_id= sent['msg_id'],
-        _gate_ = msg.gate,
-        extra={'guild_id': msg.ctx.guild.id,'channel_name': msg.ctx.channel,'author':{'id': bot.me.id}}) 
-        # extra部分留空也行
-    # 让bot给卡片消息添加对应emoji回应
-    with open("./config/emoji_color.txt", 'r',encoding='utf-8') as fr1:
-        lines = fr1.readlines()   
-        for line in lines:
-            v = line.strip().split(':')
-            await setMSG.add_reaction(v[0])
-    fr1.close()
+    cm = await ServerCheck()
+    await msg.reply(cm)
+
+# 用来保存定时发出的卡片消息
+BM_Msg_ID = "858e6016-570d-414a-b148-c33526a35404"
+
+# 手动更改全局变量中的msgid
+@bot.command()
+async def C_MSG(msg:Message,id:str):
+    logging(msg)
+    global BM_Msg_ID 
+    BM_Msg_ID  = id
+    await msg.reply(f"卡片消息id更新为:{BM_Msg_ID}")
+
+# 自动更新
+@bot.task.add_interval(minutes=30)
+async def update_Server():
+    global BM_Msg_ID 
+    cm = await ServerCheck()
+    channel = await bot.fetch_public_channel("9320542611576733")#设置自动更新的频道id
+    sent = await bot.send(channel,cm)
+
+    now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
+
+    url = dad+"/api/v3/message/delete"#删除旧的服务器信息
+    params = {"msg_id":BM_Msg_ID}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data=params,headers=headers) as response:
+                ret=json.loads(await response.text())
+                print(f"[{now_time}] Delete:{ret['message']}")#打印删除信息的返回值
+
+    BM_Msg_ID = sent['msg_id']# 更新msg_id
+    print(f"[{now_time}] SENT_MSG_ID:{sent['msg_id']}")#打印日志
 
 
-# 凭证传好了、机器人新建好了、指令也注册完了
-# 接下来就是运行我们的机器人了，bot.run() 就是机器人的起跑线
+# 查询服务器信息
+@bot.command(name='查询')
+async def check123(msg: Message, name: str, game: str, max: int = 3):
+    logging(msg)
+    await Search(msg,name,game,max)
+
+
+##################################################################################################
+
+#开跑
 bot.run()

@@ -24,7 +24,7 @@ headers={f'Authorization': f"Bot {Botoken}"}
 # 在控制台打印msg内容，用作日志
 def logging(msg: Message):
     now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
-    print(f"[{now_time}] G:{msg.ctx.guild.id} - C:{msg.ctx.channel.id} - Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - content:{msg.content}")
+    print(f"[{now_time}] G:{msg.ctx.guild.id} - C:{msg.ctx.channel.id} - Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} = {msg.content}")
 
 def logging2(e: Event):
     now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())

@@ -23,7 +23,7 @@ pip install requests
 ### 1.bot token
 在 `code/config`路径中添加`config.json`，并在里面填入以下内容来初始化你的Bot
 
-```
+```json
 {
     "token": "kook-bot websocket token",
     "verify_token": "",
@@ -31,23 +31,70 @@ pip install requests
 }
 ```
 
-### 2.ListTK
-在`code/main.py`的`L29-30`可以看到下面这两个全局变量
-```python
-ListTK = ['4794121363928781','7843220427378656','0'] # ticket申请按钮的文字频道id
-Category_ID = '8267613700948160' #被隐藏的分组id 
-```
-这两个分别是申请ticket的文字频道，和bot创建临时文字频道的隐藏分组id（设置该分组权限为`@全体成员->分组不可见`来隐藏）
+### 2.TicketConfig
 
-下面是ticket功能的示例图
+在 `code/config`路径中新增`TicketConf.json`，并填入以下内容
+
+```json
+{
+  "admin_role": [
+    "管理员角色id 1",
+    "管理员角色id 2"
+  ],
+  "admin_user": [
+    "管理员用户id 1",
+    "管理员用户id 2"
+  ],
+  "category_id": "隐藏掉的频道分组id",
+  "channel_id": {},
+  "log_channel": "用于发送ticket日志的文字频道id"
+}
+```
+ticket机器人需要您创建一个对全体成员不可见的隐藏分组，设置该分组权限为`@全体成员->分组不可见`来隐藏
+
+>id获取办法：`kook设置-高级设置-打开开发者模式`；右键用户头像即可复制用户id，右键频道/分组即可复制id，角色id需要进入服务器管理面板的角色页面中右键复制
+
+### 3.TicketLog
+
+在 `code/log`路径中新增`TicketLog.json`，并填入以下字段
+
+```json
+{
+    "TKnum": 0,
+    "data": {},
+    "msg_pair": {}
+}
+```
+
+因为bot开机的时候就会打开这个文件，若缺少字段，会影响bot的正常运行
+
+* 其中TKnum是ticket的编号计数，最高为8位数字，应该完全够用了
+
+#### 下面是ticket功能的示例图
 
 <img src="./screenshots/tk1.png" wight="300px" height="130px">
 
 <img src="./screenshots/tk2.png" wight="350px" height="220px">
 
+ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张卡片
+
+<img src="./screenshots/tk3.png" wight="350px" height="220px">
+
+管理员用户可以使用`/tkcm`命令，给某个ticket添加备注信息，卡片消息会同步更新
+```
+/tkcm TICKET编号 备注内容
+示例
+/tkcm 00000000 这是一个测试
+```
+
+<img src="./screenshots/tk4.png" wight="350px" height="220px">
+
 ----
 
 ### 3.emoji/role
+
+>这个功能写的很烂。虽然能用，但效率很低，后续会重写
+
 如果你想使用通过表情回应来上角色的功能，则还需要添加 `code/config/emoji.txt`
 
 举个栗子：emoji_id 🎙 对应 role_id `4779921`，则需要在`emoji.txt`中写入下面内容

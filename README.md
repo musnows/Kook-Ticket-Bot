@@ -47,7 +47,8 @@ pip install requests
   ],
   "category_id": "隐藏掉的频道分组id",
   "channel_id": {},
-  "log_channel": "用于发送ticket日志的文字频道id"
+  "log_channel": "用于发送ticket日志的文字频道id",
+  "debug_channel": "用于发送bot出错信息的文字频道id"
 }
 ```
 ticket机器人需要您创建一个对全体成员不可见的隐藏分组，设置该分组权限为`@全体成员->分组不可见`来隐藏

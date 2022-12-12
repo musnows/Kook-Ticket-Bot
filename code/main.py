@@ -4,6 +4,7 @@ import requests
 import aiohttp
 import time
 import traceback
+import os
 
 from khl import Bot, Message, EventTypes, Event,Client,PublicMessage
 from khl.card import CardMessage, Card, Module, Element, Types, Struct
@@ -19,6 +20,8 @@ bot = Bot(token=config['token'])
 kook_base="https://www.kookapp.cn"
 Botoken = config['token']
 headers={f'Authorization': f"Bot {Botoken}"}
+debug_ch = None #bug 修复频道
+log_ch = None #tikcet log频道
 
 #将获取当前时间封装成函数方便使用
 def GetTime():  
@@ -94,28 +97,33 @@ with open('./log/TicketLog.json', 'r', encoding='utf-8') as f2:
 async def ticket(msg: Message):
     logging(msg)
     global TKconf
-    if msg.author_id in TKconf["admin_user"]:
-        ch_id = msg.ctx.channel.id #当前所处的频道id
-        # 发送消息
-        send_msg = await msg.ctx.channel.send(
-                        CardMessage(
-                            Card(Module.Section(
-                                    '请点击右侧按钮发起ticket',
-                                    Element.Button('发起ticket',Types.Click.RETURN_VAL)))))
-        if ch_id not in TKconf["channel_id"]: #如果不在    
-            # 发送完毕消息，并将该频道插入此目录
-            TKconf["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
-            print(f"[Add TKch] Au:{msg.author_id} ChID:{ch_id} MsgID:{send_msg['msg_id']}")
-        else:
-            old_msg = TKconf["channel_id"][ch_id] #记录旧消息的id输出到日志
-            TKconf["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
-            print(f"[Add TKch] Au:{msg.author_id} ChID:{ch_id} New_MsgID:{send_msg['msg_id']} Old:{old_msg}")
+    try:
+        if msg.author_id in TKconf["admin_user"]:
+            ch_id = msg.ctx.channel.id #当前所处的频道id
+            # 发送消息
+            send_msg = await msg.ctx.channel.send(
+                            CardMessage(
+                                Card(Module.Section(
+                                        '请点击右侧按钮发起ticket',
+                                        Element.Button('发起ticket',Types.Click.RETURN_VAL)))))
+            if ch_id not in TKconf["channel_id"]: #如果不在    
+                # 发送完毕消息，并将该频道插入此目录
+                TKconf["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
+                print(f"[Add TKch] Au:{msg.author_id} ChID:{ch_id} MsgID:{send_msg['msg_id']}")
+            else:
+                old_msg = TKconf["channel_id"][ch_id] #记录旧消息的id输出到日志
+                TKconf["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
+                print(f"[Add TKch] Au:{msg.author_id} ChID:{ch_id} New_MsgID:{send_msg['msg_id']} Old:{old_msg}")
 
-        # 保存到文件
-        with open("./config/TicketConf.json", 'w', encoding='utf-8') as fw2:
-            json.dump(TKconf, fw2, indent=2, sort_keys=True, ensure_ascii=False)
-    else:
-        await msg.reply(f"您没有权限执行本命令！")
+            # 保存到文件
+            with open("./config/TicketConf.json", 'w', encoding='utf-8') as fw2:
+                json.dump(TKconf, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+        else:
+            await msg.reply(f"您没有权限执行本命令！")
+    except:
+        err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        await msg.reply(f"{err_str}")
+        print(err_str)
 
 # ticket系统,对已完成ticket进行备注
 @bot.command(name='tkcm')
@@ -223,6 +231,7 @@ async def btn_ticket(b: Bot, e: Event):
             print(f"[Open TK] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}")
     except:
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        await debug_ch.send(err_str)
         print(err_str)
 
 
@@ -271,7 +280,6 @@ async def btn_close(b: Bot, e: Event):
         c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
         cm.append(c)
         open_usr = await bot.client.fetch_user(TKlog['data'][no]['usr_id'])
-        log_ch = await bot.client.fetch_public_channel(TKconf["log_channel"])
         log_usr_sent = await open_usr.send(cm) #发送给用户
         log_ch_sent = await log_ch.send(cm) #发送到频道
         TKlog['data'][no]['log_msg_id'] = log_ch_sent['msg_id']
@@ -282,6 +290,7 @@ async def btn_close(b: Bot, e: Event):
         print(f"[Close TK] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}")
     except:
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        await debug_ch.send(err_str)
         print(err_str)
     
 ################################以下是给用户上色功能的内容########################################
@@ -458,6 +467,17 @@ async def update_reminder(b: Bot, event: Event):
 
 # 开机的时候打印一次时间，记录重启时间
 print(f"Start at: [%s]" % start_time)
+
+@bot.task.add_date()
+async def loading_channel_cookie():
+    try:
+        global debug_ch, log_ch
+        debug_ch = await bot.client.fetch_public_channel(TKconf['debug_channel'])
+        log_ch = await bot.client.fetch_public_channel(TKconf['log_channel'])
+        print("[BOT.TASK] fetch_public_channel success")
+    except:
+        print("[BOT.TASK] fetch_public_channel failed")
+        os._exit(-1)  #出现错误直接退出程序
 
 # 凭证传好了、机器人新建好了、指令也注册完了
 # 接下来就是运行我们的机器人了，bot.run() 就是机器人的起跑线

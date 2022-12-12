@@ -6,4 +6,5 @@ idsave_2.txt
 idsave_3.txt
 
 code/__pycache__
+code/log
 *.log

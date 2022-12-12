@@ -15,7 +15,7 @@ with open('./config/config.json', 'r', encoding='utf-8') as f:
 bot = Bot(token=config['token'])
 
 # kook api的头链接，请不要修改
-dad="https://www.kookapp.cn"
+kook_base="https://www.kookapp.cn"
 Botoken = config['token']
 headers={f'Authorization': f"Bot {Botoken}"}
 
@@ -120,15 +120,15 @@ async def btn_ticket(b: Bot, e: Event):
     global TKconf
     if e.body['target_id'] in TKconf["channel_id"]:
         logging2(e)
-        global dad,headers
-        url1=dad+"/api/v3/channel/create"# 创建频道
+        global kook_base,headers
+        url1=kook_base+"/api/v3/channel/create"# 创建频道
         params1 = {"guild_id": e.body['guild_id'] ,"parent_id":TKconf["category_id"],"name":e.body['user_info']['username']}
         async with aiohttp.ClientSession() as session:
             async with session.post(url1, data=params1,headers=headers) as response:
                     ret1=json.loads(await response.text())
                     #print(ret1["data"]["id"])
 
-        url2=dad+"/api/v3/channel-role/create"#创建角色权限
+        url2=kook_base+"/api/v3/channel-role/create"#创建角色权限
         params2 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id']}
         async with aiohttp.ClientSession() as session:
             async with session.post(url2, data=params2,headers=headers) as response:
@@ -136,7 +136,7 @@ async def btn_ticket(b: Bot, e: Event):
                     #print(f"ret2: {ret2}")
         
         # 服务器角色权限值见 https://developer.kaiheila.cn/doc/http/guild-role
-        url3=dad+"/api/v3/channel-role/update"#设置角色权限
+        url3=kook_base+"/api/v3/channel-role/update"#设置角色权限
         params3 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id'],"allow":2048}
         async with aiohttp.ClientSession() as session:
             async with session.post(url3, data=params3,headers=headers) as response:
@@ -162,8 +162,8 @@ async def btn_close(b: Bot, e: Event):
         return 
     
     logging2(e)
-    global dad,headers
-    url1=dad+"/api/v3/channel/view"#获取频道的信息
+    global kook_base,headers
+    url1=kook_base+"/api/v3/channel/view"#获取频道的信息
     params1 = {"target_id": e.body['target_id']}
     async with aiohttp.ClientSession() as session:
         async with session.post(url1, data=params1,headers=headers) as response:
@@ -172,7 +172,7 @@ async def btn_close(b: Bot, e: Event):
     if ret1['data']['parent_id'] != TKconf["category_id"]:
         return 
 
-    url2=dad+'/api/v3/channel/delete'#删除频道
+    url2=kook_base+'/api/v3/channel/delete'#删除频道
     params2 = {"channel_id": e.body['target_id']}
     async with aiohttp.ClientSession() as session:
         async with session.post(url2, data=params2,headers=headers) as response:

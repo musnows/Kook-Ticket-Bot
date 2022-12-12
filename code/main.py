@@ -149,7 +149,7 @@ async def btn_ticket(b: Bot, e: Event):
         c1.append(Module.ActionGroup(Element.Button('关闭', Types.Click.RETURN_VAL,theme=Types.Theme.DANGER)))
         cm.append(c1)
         channel = await b.fetch_public_channel(ret1["data"]["id"]) 
-        sent = await bot.send(channel,cm)
+        sent = await bot.client.send(channel,cm)
         return sent
     else:
         return

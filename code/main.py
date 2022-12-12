@@ -3,6 +3,7 @@ import json
 import requests
 import aiohttp
 import time
+import traceback
 
 from khl import Bot, Message, EventTypes, Event,Client,PublicMessage
 from khl.card import CardMessage, Card, Module, Element, Types, Struct
@@ -44,7 +45,7 @@ async def world(msg: Message):
     
 #####################################机器人动态#########################################
  
-from status import status_active_game,status_active_music,status_delete
+from status import status_active_game,status_active_music,status_delete,upd_card
 
 # 开始打游戏
 @bot.command()
@@ -116,123 +117,172 @@ async def ticket(msg: Message):
     else:
         await msg.reply(f"您没有权限执行本命令！")
 
+# ticket系统,对已完成ticket进行备注
+@bot.command(name='tkcm')
+async def ticket_commit(msg: Message,tkno:str,*args):
+    logging(msg)
+    if tkno == "":
+        await msg.reply(f"请提供ticket的八位数编号，如 000000123")
+        return
+    elif args == ():
+        await msg.reply(f"ticket 备注不得为空！")
+        return
+    try:
+        global TKconf,TKlog
+        if msg.author_id in TKconf["admin_user"]:
+            if tkno not in TKlog['data']:
+                await msg.reply("您输入的ticket编号未在数据库中！")
+                return
+            
+            cmt = ' '.join(args) #备注信息
+            TKlog['data'][tkno]['cmt'] = cmt
+            TKlog['data'][tkno]['cmt_usr'] = msg.author_id
+            cm = CardMessage()
+            c = Card(Module.Header(f"工单 ticket.{tkno} 已备注"),Module.Context(f"信息更新于 {GetTime()}"),Module.Divider())
+            text = f"开启时间: {TKlog['data'][tkno]['start_time']}\n"
+            text+= f"发起用户: (met){TKlog['data'][tkno]['usr_id']}(met)\n"
+            text+= f"结束时间: {TKlog['data'][tkno]['end_time']}\n"
+            text+= f"关闭用户: (met){TKlog['data'][tkno]['end_usr']}(met)\n"
+            text+= "\n"
+            text+= f"来自 (met){msg.author_id}(met) 的备注:\n> {cmt}"
+            c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
+            cm.append(c)
+            await upd_card(TKlog['data'][tkno]['log_msg_id'], cm, channel_type=msg.channel_type)
+            # 保存到文件
+            with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
+                json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+            print(f"[Cmt TK] Au:{msg.author_id} - TkID:{tkno} = {cmt}")
+        else:
+            await msg.reply(f"您没有权限执行本命令！")
+    except:
+        err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        await msg.reply(f"{err_str}")
+        print(err_str)
+
 # 监看工单系统
 # 相关api文档 https://developer.kaiheila.cn/doc/http/channel#%E5%88%9B%E5%BB%BA%E9%A2%91%E9%81%93
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_ticket(b: Bot, e: Event):
     # 判断是否为ticket申请频道的id（文字频道id）
     global TKconf,TKlog
-    if e.body['target_id'] in TKconf["channel_id"]:
-        logging2(e)
-        global kook_base,headers
-        url1=kook_base+"/api/v3/channel/create"# 创建频道
-        params1 = {"guild_id": e.body['guild_id'] ,"parent_id":TKconf["category_id"],"name":e.body['user_info']['username']}
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url1, data=params1,headers=headers) as response:
-                    ret1=json.loads(await response.text())
-                    #print(ret1["data"]["id"])
+    try:
+        if e.body['target_id'] in TKconf["channel_id"]:
+            logging2(e)
+            global kook_base,headers
+            url1=kook_base+"/api/v3/channel/create"# 创建频道
+            params1 = {"guild_id": e.body['guild_id'] ,"parent_id":TKconf["category_id"],"name":e.body['user_info']['username']}
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url1, data=params1,headers=headers) as response:
+                        ret1=json.loads(await response.text())
+                        #print(ret1["data"]["id"])
 
-        url2=kook_base+"/api/v3/channel-role/create"#创建角色权限
-        params2 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id']}
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url2, data=params2,headers=headers) as response:
-                    ret2=json.loads(await response.text())
-                    #print(f"ret2: {ret2}")
-        
-        # 服务器角色权限值见 https://developer.kaiheila.cn/doc/http/guild-role
-        url3=kook_base+"/api/v3/channel-role/update"#设置角色权限
-        params3 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id'],"allow":2048}
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url3, data=params3,headers=headers) as response:
-                    ret3=json.loads(await response.text())
-                    #print(f"ret3: {ret3}")
-        
-        # 管理员角色id，修改配置文件中的对应部分
-        text = f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n"
-        for roles_id in TKconf["admin_role"]:
-            text+=f"(rol){roles_id}(rol) "
-        text+="\n"
-        
-        cm = CardMessage()
-        c1 = Card(Module.Section(Element.Text(text,Types.Text.KMD)))
-        c1.append(Module.Section('帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n'))
-        c1.append(Module.ActionGroup(Element.Button('关闭', Types.Click.RETURN_VAL,theme=Types.Theme.DANGER)))
-        cm.append(c1)
-        channel = await bot.client.fetch_public_channel(ret1["data"]["id"]) 
-        sent = await bot.client.send(channel,cm)
+            url2=kook_base+"/api/v3/channel-role/create"#创建角色权限
+            params2 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id']}
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url2, data=params2,headers=headers) as response:
+                        ret2=json.loads(await response.text())
+                        #print(f"ret2: {ret2}")
+            
+            # 服务器角色权限值见 https://developer.kaiheila.cn/doc/http/guild-role
+            url3=kook_base+"/api/v3/channel-role/update"#设置角色权限
+            params3 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id'],"allow":2048}
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url3, data=params3,headers=headers) as response:
+                        ret3=json.loads(await response.text())
+                        #print(f"ret3: {ret3}")
+            
+            # 管理员角色id，修改配置文件中的对应部分
+            text = f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n"
+            for roles_id in TKconf["admin_role"]:
+                text+=f"(rol){roles_id}(rol) "
+            text+="\n"
+            
+            cm = CardMessage()
+            c1 = Card(Module.Section(Element.Text(text,Types.Text.KMD)))
+            c1.append(Module.Section('帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n'))
+            c1.append(Module.ActionGroup(Element.Button('关闭', Types.Click.RETURN_VAL,theme=Types.Theme.DANGER)))
+            cm.append(c1)
+            channel = await bot.client.fetch_public_channel(ret1["data"]["id"]) 
+            sent = await bot.client.send(channel,cm)
 
-        #发送消息完毕，记录消息信息
-        no = str(TKlog["TKnum"])#消息的编号，改成str处理
-        no = no.rjust(8, '0')
-        TKlog['data'][no] = {}
-        TKlog['data'][no]['usr_id'] = e.body['user_id'] # 发起ticket的用户id
-        TKlog['data'][no]['usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
-        TKlog['data'][no]['msg_id'] = sent['msg_id'] # bot发送消息的id
-        TKlog['data'][no]['channel_id'] = ret1["data"]["id"] # bot创建的频道id
-        TKlog['data'][no]['start_time'] = GetTime() # 开启时间
-        TKlog['msg_pair'][sent['msg_id']] = no # 键值对，msgid映射ticket编号
-        TKlog['TKnum']+=1
+            #发送消息完毕，记录消息信息
+            no = str(TKlog["TKnum"])#消息的编号，改成str处理
+            no = no.rjust(8, '0')
+            TKlog['data'][no] = {}
+            TKlog['data'][no]['usr_id'] = e.body['user_id'] # 发起ticket的用户id
+            TKlog['data'][no]['usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
+            TKlog['data'][no]['msg_id'] = sent['msg_id'] # bot发送消息的id
+            TKlog['data'][no]['channel_id'] = ret1["data"]["id"] # bot创建的频道id
+            TKlog['data'][no]['start_time'] = GetTime() # 开启时间
+            TKlog['msg_pair'][sent['msg_id']] = no # 键值对，msgid映射ticket编号
+            TKlog['TKnum']+=1
 
-        # 保存到文件
-        with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
-            json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
-        print(f"[Open TK] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}")
+            # 保存到文件
+            with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
+                json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+            print(f"[Open TK] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}")
+    except:
+        err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        print(err_str)
 
 
 # 监看关闭情况
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_close(b: Bot, e: Event):
-    # 避免与tiket申请按钮冲突（文字频道id）
-    if e.body['target_id'] in TKconf["channel_id"]:
-        return 
-    
-    logging2(e)
-    global kook_base,headers
-    url1=kook_base+"/api/v3/channel/view"#获取频道的信息
-    params1 = {"target_id": e.body['target_id']}
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url1, data=params1,headers=headers) as response:
-                ret1=json.loads(await response.text())
-    # 判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
-    if ret1['data']['parent_id'] != TKconf["category_id"]:
-        return 
+    try:
+        # 避免与tiket申请按钮冲突（文字频道id）
+        if e.body['target_id'] in TKconf["channel_id"]:
+            return 
+        
+        logging2(e)
+        global kook_base,headers
+        url1=kook_base+"/api/v3/channel/view"#获取频道的信息
+        params1 = {"target_id": e.body['target_id']}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url1, data=params1,headers=headers) as response:
+                    ret1=json.loads(await response.text())
+        # 判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
+        if ret1['data']['parent_id'] != TKconf["category_id"]:
+            return 
 
-    # 是，删除频道
-    url2=kook_base+'/api/v3/channel/delete'
-    params2 = {"channel_id": e.body['target_id']}
-    async with aiohttp.ClientSession() as session:
-        async with session.post(url2, data=params2,headers=headers) as response:
-                ret2=json.loads(await response.text())
-                #print(ret2)
+        # 是，删除频道
+        url2=kook_base+'/api/v3/channel/delete'
+        params2 = {"channel_id": e.body['target_id']}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url2, data=params2,headers=headers) as response:
+                    ret2=json.loads(await response.text())
+                    #print(ret2)
 
-    # 记录信息
-    global TKlog
-    no = TKlog['msg_pair'][e.body['msg_id']] #通过消息id获取到ticket的编号
-    TKlog['data'][no]['end_time'] = GetTime() #结束时间
-    TKlog['data'][no]['end_usr'] = e.body['user_id'] #是谁关闭的
-    TKlog['data'][no]['end_usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
-    del TKlog['msg_pair'][e.body['msg_id']] #删除键值对
+        # 记录信息
+        global TKlog
+        no = TKlog['msg_pair'][e.body['msg_id']] #通过消息id获取到ticket的编号
+        TKlog['data'][no]['end_time'] = GetTime() #结束时间
+        TKlog['data'][no]['end_usr'] = e.body['user_id'] #是谁关闭的
+        TKlog['data'][no]['end_usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
+        del TKlog['msg_pair'][e.body['msg_id']] #删除键值对
 
-    # 发送消息给开启该tk的用户和log频道
-    cm = CardMessage()
-    c = Card(Module.Header(f"工单 ticket.{no} 已关闭"))
-    c.append(Module.Divider())
-    text = f"开启时间: {TKlog['data'][no]['start_time']}\n"
-    text+= f"发起用户: (met){TKlog['data'][no]['usr_id']}(met)\n"
-    text+= f"结束时间: {TKlog['data'][no]['end_time']}\n"
-    text+= f"关闭用户: (met){TKlog['data'][no]['end_usr']}(met)\n"
-    c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
-    cm.append(c)
-    open_usr = await bot.client.fetch_user(TKlog['data'][no]['usr_id'])
-    log_ch = await bot.client.fetch_public_channel(TKconf["log_channel"])
-    log_usr_sent = await open_usr.send(cm) #发送给用户
-    log_ch_sent = await log_ch.send(cm) #发送到频道
-    TKlog['data'][no]['log_msg_id'] = log_ch_sent['msg_id']
+        # 发送消息给开启该tk的用户和log频道
+        cm = CardMessage()
+        c = Card(Module.Header(f"工单 ticket.{no} 已关闭"),Module.Divider())
+        text = f"开启时间: {TKlog['data'][no]['start_time']}\n"
+        text+= f"发起用户: (met){TKlog['data'][no]['usr_id']}(met)\n"
+        text+= f"结束时间: {TKlog['data'][no]['end_time']}\n"
+        text+= f"关闭用户: (met){TKlog['data'][no]['end_usr']}(met)\n"
+        c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
+        cm.append(c)
+        open_usr = await bot.client.fetch_user(TKlog['data'][no]['usr_id'])
+        log_ch = await bot.client.fetch_public_channel(TKconf["log_channel"])
+        log_usr_sent = await open_usr.send(cm) #发送给用户
+        log_ch_sent = await log_ch.send(cm) #发送到频道
+        TKlog['data'][no]['log_msg_id'] = log_ch_sent['msg_id']
 
-    # 保存到文件
-    with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
-        json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
-    print(f"[Close TK] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}")
+        # 保存到文件
+        with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
+            json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+        print(f"[Close TK] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}")
+    except:
+        err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        print(err_str)
     
 ################################以下是给用户上色功能的内容########################################
 

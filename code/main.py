@@ -44,7 +44,26 @@ def logging2(e: Event):
 async def world(msg: Message):
     logging(msg)
     await msg.reply('world!')
-    
+
+def help_text():
+    text = "ticket-bot的命令操作\n"
+    text+=f"`/ticket` 在本频道发送一条消息，作为ticket的开启按钮\n"
+    text+=f"`/tkcm 工单id 备注` 对某一条已经关闭的工单进行备注\n"
+    text+=f"以上命令都需要管理员才能操作"
+    return text
+
+@bot.command(name='TKhelp')
+async def help(msg: Message):
+    logging(msg)
+    text = help_text()
+    await msg.reply(text)
+
+#有人at机器人的时候也发送帮助命令
+@bot.command(regex=r'(.+)', rules=[Rule.is_bot_mentioned(bot)])
+async def atBOT(msg: Message, mention_str: str):
+    logging(msg)
+    text = help_text()
+    await msg.reply(text)
     
 #####################################机器人动态#########################################
  

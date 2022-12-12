@@ -75,8 +75,12 @@ async def sleeping(msg: Message,d:int):
 
 ################################以下是给ticket功能的内容########################################
 
-ListTK = ['4794121363928781','7843220427378656','0'] # ticket申请按钮的文字频道id
-Category_ID = '8267613700948160' #被隐藏的分组id 
+# 从文件中读取频道和分组id
+with open('./config/ticket-conf.json', 'r', encoding='utf-8') as f1:
+    ticket_conf = json.load(f1)
+
+CategoryID = ticket_conf["category_id"] # 用于创建工单频道的隐藏分组
+ListTK = ticket_conf["channel_id"] # 需要监视ticket开启按钮的频道
 
 # ticket系统,发送卡片消息
 @bot.command()
@@ -98,7 +102,7 @@ async def btn_ticket(b: Bot, e: Event):
         logging2(e)
         global dad,headers
         url1=dad+"/api/v3/channel/create"# 创建频道
-        params1 = {"guild_id": e.body['guild_id'] ,"parent_id":Category_ID,"name":e.body['user_info']['username']}
+        params1 = {"guild_id": e.body['guild_id'] ,"parent_id":CategoryID,"name":e.body['user_info']['username']}
         async with aiohttp.ClientSession() as session:
             async with session.post(url1, data=params1,headers=headers) as response:
                     ret1=json.loads(await response.text())
@@ -145,7 +149,7 @@ async def btn_close(b: Bot, e: Event):
         async with session.post(url1, data=params1,headers=headers) as response:
                 ret1=json.loads(await response.text())
     #判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
-    if ret1['data']['parent_id'] != Category_ID:
+    if ret1['data']['parent_id'] != CategoryID:
         return 
 
     url2=dad+'/api/v3/channel/delete'#删除频道

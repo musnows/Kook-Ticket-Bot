@@ -212,6 +212,23 @@ async def btn_close(b: Bot, e: Event):
     TKlog['data'][no]['end_usr'] = e.body['user_id'] #是谁关闭的
     TKlog['data'][no]['end_usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
     del TKlog['msg_pair'][e.body['msg_id']] #删除键值对
+
+    # 发送消息给开启该tk的用户和log频道
+    cm = CardMessage()
+    c = Card(Module.Header(f"工单 ticket.{no} 已关闭"))
+    c.append(Module.Divider())
+    text = f"开启时间: {TKlog['data'][no]['start_time']}\n"
+    text+= f"发起用户: (met){TKlog['data'][no]['usr_id']}(met)\n"
+    text+= f"结束时间: {TKlog['data'][no]['end_time']}\n"
+    text+= f"关闭用户: (met){TKlog['data'][no]['end_usr']}(met)\n"
+    c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
+    cm.append(c)
+    open_usr = await bot.client.fetch_user(TKlog['data'][no]['usr_id'])
+    log_ch = await bot.client.fetch_public_channel(TKconf["log_channel"])
+    log_usr_sent = await open_usr.send(cm) #发送给用户
+    log_ch_sent = await log_ch.send(cm) #发送到频道
+    TKlog['data'][no]['log_msg_id'] = log_ch_sent['msg_id']
+
     # 保存到文件
     with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
         json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)

@@ -154,7 +154,7 @@ async def btn_ticket(b: Bot, e: Event):
         c1.append(Module.Section('帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n'))
         c1.append(Module.ActionGroup(Element.Button('关闭', Types.Click.RETURN_VAL,theme=Types.Theme.DANGER)))
         cm.append(c1)
-        channel = await b.fetch_public_channel(ret1["data"]["id"]) 
+        channel = await bot.client.fetch_public_channel(ret1["data"]["id"]) 
         sent = await bot.client.send(channel,cm)
         return sent
     else:
@@ -276,11 +276,11 @@ async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
 # 判断消息的emoji回应，并给予不同角色
 @bot.on_event(EventTypes.ADDED_REACTION)
 async def update_reminder(b: Bot, event: Event):
-    g = await b.fetch_guild(Guild_ID)# 填入服务器id
+    g = await bot.client.fetch_guild(Guild_ID)# 填入服务器id
     logging2(event)#事件日志
 
-    channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
-    s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
+    channel = await bot.client.fetch_public_channel(event.body['channel_id']) #获取事件频道
+    s = await bot.client.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
     # 判断用户回复的emoji是否合法
     emoji=event.body["emoji"]['id']
  
@@ -309,8 +309,8 @@ async def update_reminder(b: Bot, event: Event):
     
     # 第二个消息
     elif event.body['msg_id'] == Msg_ID_2:
-        # channel = await b.fetch_public_channel(event.body['channel_id']) #获取事件频道
-        # s = await b.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
+        # channel = await bot.client.fetch_public_channel(event.body['channel_id']) #获取事件频道
+        # s = await bot.client.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
         # # 判断用户回复的emoji是否合法
         # emoji=event.body["emoji"]['id']
         flag=0

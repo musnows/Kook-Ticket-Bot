@@ -19,7 +19,12 @@ dad="https://www.kookapp.cn"
 Botoken = config['token']
 headers={f'Authorization': f"Bot {Botoken}"}
 
+#将获取当前时间封装成函数方便使用
+def GetTime():  
+    return time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
 
+#记录开机时间
+start_time = GetTime()
 
 # 在控制台打印msg内容，用作日志
 def logging(msg: Message):
@@ -76,33 +81,48 @@ async def sleeping(msg: Message,d:int):
 ################################以下是给ticket功能的内容########################################
 
 # 从文件中读取频道和分组id
-with open('./config/ticket-conf.json', 'r', encoding='utf-8') as f1:
-    ticket_conf = json.load(f1)
-
-CategoryID = ticket_conf["category_id"] # 用于创建工单频道的隐藏分组
-ListTK = ticket_conf["channel_id"] # 需要监视ticket开启按钮的频道
+with open('./config/TicketConf.json', 'r', encoding='utf-8') as f1:
+    TKconf = json.load(f1)
 
 # ticket系统,发送卡片消息
 @bot.command()
 async def ticket(msg: Message):
     logging(msg)
-    await msg.ctx.channel.send(
-        CardMessage(
-            Card(Module.Section(
-                    '请点击右侧按钮发起ticket',
-                    Element.Button('发起ticket',Types.Click.RETURN_VAL)))))
+    global TKconf
+    if msg.author_id in TKconf["admin_user"]:
+        ch_id = msg.ctx.channel.id #当前所处的频道id
+        # 发送消息
+        send_msg = await msg.ctx.channel.send(
+                        CardMessage(
+                            Card(Module.Section(
+                                    '请点击右侧按钮发起ticket',
+                                    Element.Button('发起ticket',Types.Click.RETURN_VAL)))))
+        if ch_id not in TKconf["channel_id"]: #如果不在    
+            # 发送完毕消息，并将该频道插入此目录
+            TKconf["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
+            print(f"[Add TKch] Au:{msg.author_id} ChID:{ch_id} MsgID:{send_msg['msg_id']}")
+        else:
+            old_msg = TKconf["channel_id"][ch_id] #记录旧消息的id输出到日志
+            TKconf["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
+            print(f"[Add TKch] Au:{msg.author_id} ChID:{ch_id} New_MsgID:{send_msg['msg_id']} Old:{old_msg}")
+
+        # 保存到文件
+        with open("./config/TicketConf.json", 'w', encoding='utf-8') as fw2:
+            json.dump(TKconf, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+    else:
+        await msg.reply(f"您没有权限执行本命令！")
 
 # 监看工单系统
 # 相关api文档 https://developer.kaiheila.cn/doc/http/channel#%E5%88%9B%E5%BB%BA%E9%A2%91%E9%81%93
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_ticket(b: Bot, e: Event):
     # 判断是否为ticket申请频道的id（文字频道id）
-    global ListTK
-    if e.body['target_id'] in ListTK:
+    global TKconf
+    if e.body['target_id'] in TKconf["channel_id"]:
         logging2(e)
         global dad,headers
         url1=dad+"/api/v3/channel/create"# 创建频道
-        params1 = {"guild_id": e.body['guild_id'] ,"parent_id":CategoryID,"name":e.body['user_info']['username']}
+        params1 = {"guild_id": e.body['guild_id'] ,"parent_id":TKconf["category_id"],"name":e.body['user_info']['username']}
         async with aiohttp.ClientSession() as session:
             async with session.post(url1, data=params1,headers=headers) as response:
                     ret1=json.loads(await response.text())
@@ -138,7 +158,7 @@ async def btn_ticket(b: Bot, e: Event):
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_close(b: Bot, e: Event):
     # 避免与tiket申请按钮冲突（文字频道id）
-    if e.body['target_id'] in ListTK:
+    if e.body['target_id'] in TKconf["channel_id"]:
         return 
     
     logging2(e)
@@ -149,7 +169,7 @@ async def btn_close(b: Bot, e: Event):
         async with session.post(url1, data=params1,headers=headers) as response:
                 ret1=json.loads(await response.text())
     #判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
-    if ret1['data']['parent_id'] != CategoryID:
+    if ret1['data']['parent_id'] != TKconf["category_id"]:
         return 
 
     url2=dad+'/api/v3/channel/delete'#删除频道
@@ -160,6 +180,8 @@ async def btn_close(b: Bot, e: Event):
                 #print(ret2)
     
 ################################以下是给用户上色功能的内容########################################
+
+# 22.12.12 这部分写的很烂，等待我重写！新的版本在kook-valorant-bot中有
 
 # 设置自动上色event的服务器id和消息id
 Guild_ID = '1573724356603748'
@@ -329,37 +351,8 @@ async def update_reminder(b: Bot, event: Event):
         if flag == 0: #回复的表情不合法
             await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
 
-
-
-######################################################################################
-
-
-# 由于需求不同，该功能暂时弃用
-# 给用户上色（在发出消息后，机器人自动添加回应）
-@bot.command()
-async def Color_Set(msg: Message):
-    logging(msg)
-    cm = CardMessage()
-    c1 = Card(Module.Header('在下面添加回应，来设置你的角色吧！'), Module.Context('更多角色等待上线...'))
-    c1.append(Module.Divider())
-    c1.append(Module.Section('「:pig:」粉色  「:heart:」红色\n「:black_heart:」黑色  「:yellow_heart:」黄色\n'))
-    c1.append(Module.Section('「:blue_heart:」蓝色  「:purple_heart:」紫色\n「:green_heart:」绿色  「:+1:」默认\n'))
-    cm.append(c1)
-    sent = await msg.ctx.channel.send(cm) #接受send的返回值
-    # 自己new一个msg对象    
-    setMSG=PublicMessage(
-        msg_id= sent['msg_id'],
-        _gate_ = msg.gate,
-        extra={'guild_id': msg.ctx.guild.id,'channel_name': msg.ctx.channel,'author':{'id': bot.me.id}}) 
-        # extra部分留空也行
-    # 让bot给卡片消息添加对应emoji回应
-    with open("./config/emoji_color.txt", 'r',encoding='utf-8') as fr1:
-        lines = fr1.readlines()   
-        for line in lines:
-            v = line.strip().split(':')
-            await setMSG.add_reaction(v[0])
-    fr1.close()
-
+# 开机的时候打印一次时间，记录重启时间
+print(f"Start at: [%s]" % start_time)
 
 # 凭证传好了、机器人新建好了、指令也注册完了
 # 接下来就是运行我们的机器人了，bot.run() 就是机器人的起跑线

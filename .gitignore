@@ -1,8 +1,9 @@
 config.json
+TicketConf.json
+
 idsave_1.txt
 idsave_2.txt
 idsave_3.txt
 
 code/__pycache__
-bot.log
-ticket-conf.json
+*.log

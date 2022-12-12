@@ -143,8 +143,14 @@ async def btn_ticket(b: Bot, e: Event):
                     ret3=json.loads(await response.text())
                     #print(f"ret3: {ret3}")
         
+        # 管理员角色id
+        text = f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n"
+        for roles_id in TKconf["admin_role"]:
+            text+=f"(rol){roles_id}(rol) "
+        text+="\n"
+        
         cm = CardMessage()# 这里需要修改卡片消息中处理本事件的管理员角色id，(rol)角色id(rol)
-        c1 = Card(Module.Section(Element.Text(f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n(rol)351607(rol) (rol)4780087(rol) (rol)4780088(rol) (rol)4780089(rol)\n",Types.Text.KMD)))
+        c1 = Card(Module.Section(Element.Text(text,Types.Text.KMD)))
         c1.append(Module.Section('帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n'))
         c1.append(Module.ActionGroup(Element.Button('关闭', Types.Click.RETURN_VAL,theme=Types.Theme.DANGER)))
         cm.append(c1)

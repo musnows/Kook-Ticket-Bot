@@ -84,6 +84,10 @@ async def sleeping(msg: Message,d:int):
 with open('./config/TicketConf.json', 'r', encoding='utf-8') as f1:
     TKconf = json.load(f1)
 
+# 从文件中读取历史ticket记录
+with open('./log/TicketLog.json', 'r', encoding='utf-8') as f2:
+    TKlog = json.load(f2)
+
 # ticket系统,发送卡片消息
 @bot.command()
 async def ticket(msg: Message):
@@ -117,7 +121,7 @@ async def ticket(msg: Message):
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_ticket(b: Bot, e: Event):
     # 判断是否为ticket申请频道的id（文字频道id）
-    global TKconf
+    global TKconf,TKlog
     if e.body['target_id'] in TKconf["channel_id"]:
         logging2(e)
         global kook_base,headers
@@ -143,22 +147,37 @@ async def btn_ticket(b: Bot, e: Event):
                     ret3=json.loads(await response.text())
                     #print(f"ret3: {ret3}")
         
-        # 管理员角色id
+        # 管理员角色id，修改配置文件中的对应部分
         text = f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n"
         for roles_id in TKconf["admin_role"]:
             text+=f"(rol){roles_id}(rol) "
         text+="\n"
         
-        cm = CardMessage()# 这里需要修改卡片消息中处理本事件的管理员角色id，(rol)角色id(rol)
+        cm = CardMessage()
         c1 = Card(Module.Section(Element.Text(text,Types.Text.KMD)))
         c1.append(Module.Section('帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n'))
         c1.append(Module.ActionGroup(Element.Button('关闭', Types.Click.RETURN_VAL,theme=Types.Theme.DANGER)))
         cm.append(c1)
         channel = await bot.client.fetch_public_channel(ret1["data"]["id"]) 
         sent = await bot.client.send(channel,cm)
-        return sent
-    else:
-        return
+
+        #发送消息完毕，记录消息信息
+        no = str(TKlog["TKnum"])#消息的编号，改成str处理
+        no = no.rjust(8, '0')
+        TKlog['data'][no] = {}
+        TKlog['data'][no]['usr_id'] = e.body['user_id'] # 发起ticket的用户id
+        TKlog['data'][no]['usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
+        TKlog['data'][no]['msg_id'] = sent['msg_id'] # bot发送消息的id
+        TKlog['data'][no]['channel_id'] = ret1["data"]["id"] # bot创建的频道id
+        TKlog['data'][no]['start_time'] = GetTime() # 开启时间
+        TKlog['msg_pair'][sent['msg_id']] = no # 键值对，msgid映射ticket编号
+        TKlog['TKnum']+=1
+
+        # 保存到文件
+        with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
+            json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+        print(f"[Open TK] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}")
+
 
 # 监看关闭情况
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
@@ -174,16 +193,29 @@ async def btn_close(b: Bot, e: Event):
     async with aiohttp.ClientSession() as session:
         async with session.post(url1, data=params1,headers=headers) as response:
                 ret1=json.loads(await response.text())
-    #判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
+    # 判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
     if ret1['data']['parent_id'] != TKconf["category_id"]:
         return 
 
-    url2=kook_base+'/api/v3/channel/delete'#删除频道
+    # 是，删除频道
+    url2=kook_base+'/api/v3/channel/delete'
     params2 = {"channel_id": e.body['target_id']}
     async with aiohttp.ClientSession() as session:
         async with session.post(url2, data=params2,headers=headers) as response:
                 ret2=json.loads(await response.text())
                 #print(ret2)
+
+    # 记录信息
+    global TKlog
+    no = TKlog['msg_pair'][e.body['msg_id']] #通过消息id获取到ticket的编号
+    TKlog['data'][no]['end_time'] = GetTime() #结束时间
+    TKlog['data'][no]['end_usr'] = e.body['user_id'] #是谁关闭的
+    TKlog['data'][no]['end_usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
+    del TKlog['msg_pair'][e.body['msg_id']] #删除键值对
+    # 保存到文件
+    with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
+        json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+    print(f"[Close TK] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}")
     
 ################################以下是给用户上色功能的内容########################################
 

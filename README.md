@@ -1,5 +1,5 @@
 # Kook-Ticket-Bot
-A ticket bot for KOOK  表单系统机器人
+A ticket bot for KOOK 表单系统机器人
 
 工作流程
 * 当用户B点击卡片消息的按钮后，创建一个只有用户B可见的文字频道
@@ -11,7 +11,9 @@ A ticket bot for KOOK  表单系统机器人
 * 设置bot动态 `游戏/音乐`
 
 ## Requerments
-you need to `pip install` pakages before using this bot
+
+使用本机器人之前，请先安装以下依赖项
+
 ```
 pip install khl.py
 pip install requests
@@ -20,13 +22,15 @@ pip install requests
 ## Config
 ### 1.bot token
 在 `code/config`路径中添加`config.json`，并在里面填入以下内容来初始化你的Bot
+
 ```
 {
-    "token": " YOUR BOT TOKEN HERE ",
+    "token": "kook-bot websocket token",
     "verify_token": "",
     "encrypt_key": ""
 }
 ```
+
 ### 2.ListTK
 在`code/main.py`的`L29-30`可以看到下面这两个全局变量
 ```python
@@ -76,4 +80,3 @@ Msg_ID_3 = 'd4dbb164-bd80-469b-9473-8285a9c91e0d'
 有任何问题，请添加`issue`，或加入我的交流服务器与我联系 [kook邀请链接](https://kook.top/gpbTwZ)
 
 如果你觉得本项目还不错，还请高抬贵手点个star✨，万般感谢！
-

@@ -263,18 +263,33 @@ async def btn_close(b: Bot, e: Event):
     try:
         # 避免与tiket申请按钮冲突（文字频道id）
         if e.body['target_id'] in TKconf["channel_id"]:
-            return 
+            print(f"[BTN_CLICK] channel_id in TKconf:{e.body['msg_id']}")
+            return
+
+        # 判断频道id是否在以开启的tk日志中，如果不在，则return
+        if e.body['msg_id'] not in TKlog["msg_pair"]:
+            print(f"[BTN_CLICK] msg_id not in log:{e.body['msg_id']}")
+            return
         
+        # 基本有效则打印json内容
         logging2(e)
-        global kook_base,headers
-        url1=kook_base+"/api/v3/channel/view"#获取频道的信息
-        params1 = {"target_id": e.body['target_id']}
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url1, data=params1,headers=headers) as response:
-                    ret1=json.loads(await response.text())
-        # 判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
-        if ret1['data']['parent_id'] != TKconf["category_id"]:
-            return 
+
+        # global kook_base,headers,TKlog
+        # url1=kook_base+"/api/v3/channel/view"#获取频道的信息
+        # params1 = {"target_id": e.body['target_id']}
+        # async with aiohttp.ClientSession() as session:
+        #     async with session.post(url1, data=params1,headers=headers) as response:
+        #             ret1=json.loads(await response.text())
+        # # 判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
+        # if ret1['data']['parent_id'] != TKconf["category_id"]:
+        #     return
+        
+        #判断是否为管理员，只有管理可以关闭tk
+        if e.body['user_id'] not in TKconf["admin_user"]: 
+            temp_ch = await bot.client.fetch_public_channel(e.body['target_id'])
+            await temp_ch.send(f"抱歉，只有管理员用户可以关闭ticket")
+            print(f"[BTN_CLICK] by none admin usr:{e.body['user_id']} - C:{e.body['target_id']}")
+            return
 
         # 是，删除频道
         url2=kook_base+'/api/v3/channel/delete'
@@ -285,7 +300,6 @@ async def btn_close(b: Bot, e: Event):
                     #print(ret2)
 
         # 记录信息
-        global TKlog
         no = TKlog['msg_pair'][e.body['msg_id']] #通过消息id获取到ticket的编号
         TKlog['data'][no]['end_time'] = GetTime() #结束时间
         TKlog['data'][no]['end_usr'] = e.body['user_id'] #是谁关闭的

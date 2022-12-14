@@ -275,10 +275,10 @@ async def btn_close(b: Bot, e: Event):
         logging2(e)
 
         # global kook_base,headers,TKlog
-        # url1=kook_base+"/api/v3/channel/view"#获取频道的信息
+        # url0=kook_base+"/api/v3/channel/view"#获取频道的信息
         # params1 = {"target_id": e.body['target_id']}
         # async with aiohttp.ClientSession() as session:
-        #     async with session.post(url1, data=params1,headers=headers) as response:
+        #     async with session.post(url0, data=params1,headers=headers) as response:
         #             ret1=json.loads(await response.text())
         # # 判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
         # if ret1['data']['parent_id'] != TKconf["category_id"]:
@@ -290,6 +290,18 @@ async def btn_close(b: Bot, e: Event):
             await temp_ch.send(f"```\n抱歉，只有管理员用户可以关闭ticket\n```")
             print(f"[BTN_CLICK] by none admin usr:{e.body['user_id']} - C:{e.body['target_id']}")
             return
+
+        # 保存聊天记录到文件，用tick编号命名
+        url1 = kook_base + '/api/v3/message/list'
+        params1 = {"target_id": e.body['target_id'],"page_size":100}
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url1, data=params1,headers=headers) as response:
+                    ret1=json.loads(await response.text())
+                    
+        filename = f"./log/ticket/{TKlog['msg_pair'][e.body['msg_id']]}.json"
+        os.makedirs(os.path.dirname(filename), exist_ok=True)#保存之前创建该文件
+        with open(filename, 'w', encoding='utf-8') as fw2:
+            json.dump(ret1, fw2, indent=2, sort_keys=True, ensure_ascii=False)
 
         # 是，删除频道
         url2=kook_base+'/api/v3/channel/delete'

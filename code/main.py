@@ -287,7 +287,7 @@ async def btn_close(b: Bot, e: Event):
         #判断是否为管理员，只有管理可以关闭tk
         if e.body['user_id'] not in TKconf["admin_user"]: 
             temp_ch = await bot.client.fetch_public_channel(e.body['target_id'])
-            await temp_ch.send(f"抱歉，只有管理员用户可以关闭ticket")
+            await temp_ch.send(f"```\n抱歉，只有管理员用户可以关闭ticket\n```")
             print(f"[BTN_CLICK] by none admin usr:{e.body['user_id']} - C:{e.body['target_id']}")
             return
 

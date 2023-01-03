@@ -345,6 +345,8 @@ async def ticket_close(b: Bot, e: Event):
             os.makedirs(os.path.dirname(filename), exist_ok=True)#保存之前创建该文件（不然会报错）
             with open(filename, 'w', encoding='utf-8') as fw2:
                 json.dump(TKMsgLog['data'][e.body['target_id']], fw2, indent=2, sort_keys=True, ensure_ascii=False)
+            del TKMsgLog["data"][e.body['target_id']]
+            del TKMsgLog["TKMsgChannel"][e.body['target_id']]
             print(f"[TK.CLOSE] save log msg of {TKlog['msg_pair'][e.body['msg_id']]}")
 
         # 保存完毕记录后，删除频道

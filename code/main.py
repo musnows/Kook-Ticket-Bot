@@ -114,6 +114,10 @@ with open('./config/TicketConf.json', 'r', encoding='utf-8') as f1:
 with open('./log/TicketLog.json', 'r', encoding='utf-8') as f2:
     TKlog = json.load(f2)
 
+# 从文件中读取历史ticket msg记录
+with open('./log/TicketMsgLog.json', 'r', encoding='utf-8') as f2:
+    TKMsgLog = json.load(f2)
+
 # ticket系统,发送卡片消息
 @bot.command()
 async def ticket(msg: Message):
@@ -189,7 +193,7 @@ async def ticket_commit(msg: Message,tkno:str,*args):
         await msg.reply(f"{err_str}")
         print(err_str)
 
-# 监看工单系统
+# 监看工单系统(开启)
 # 相关api文档 https://developer.kaiheila.cn/doc/http/channel#%E5%88%9B%E5%BB%BA%E9%A2%91%E9%81%93
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_ticket(b: Bot, e: Event):
@@ -245,19 +249,20 @@ async def btn_ticket(b: Bot, e: Event):
             TKlog['data'][no]['channel_id'] = ret1["data"]["id"] # bot创建的频道id
             TKlog['data'][no]['start_time'] = GetTime() # 开启时间
             TKlog['msg_pair'][sent['msg_id']] = no # 键值对，msgid映射ticket编号
+            TKlog['TKchannel'][ret1["data"]["id"]] = no #记录bot创建的频道id，用于消息日志
             TKlog['TKnum']+=1
 
             # 保存到文件
             with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
                 json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
-            print(f"[Open TK] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}")
+            print(f"[TK.OPEN] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}")
     except:
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
         print(err_str)
 
 
-# 监看关闭情况
+# 监看工单关闭情况
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_close(b: Bot, e: Event):
     try:
@@ -266,7 +271,7 @@ async def btn_close(b: Bot, e: Event):
             print(f"[BTN_CLICK] channel_id in TKconf:{e.body['msg_id']}")
             return
 
-        # 判断频道id是否在以开启的tk日志中，如果不在，则return
+        # 判断关闭按钮的卡片消息id是否在以开启的tk日志中，如果不在，则return
         if e.body['msg_id'] not in TKlog["msg_pair"]:
             print(f"[BTN_CLICK] msg_id not in log:{e.body['msg_id']}")
             return
@@ -291,25 +296,21 @@ async def btn_close(b: Bot, e: Event):
             print(f"[BTN_CLICK] by none admin usr:{e.body['user_id']} - C:{e.body['target_id']}")
             return
 
-        # 保存聊天记录到文件，用tick编号命名
-        url1 = kook_base + '/api/v3/message/list'
-        params1 = {"target_id": e.body['target_id'],"page_size":100}
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url1, data=params1,headers=headers) as response:
-                    ret1=json.loads(await response.text())
-                    
-        filename = f"./log/ticket/{TKlog['msg_pair'][e.body['msg_id']]}.json"
-        os.makedirs(os.path.dirname(filename), exist_ok=True)#保存之前创建该文件
-        with open(filename, 'w', encoding='utf-8') as fw2:
-            json.dump(ret1, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+        #保存ticket的聊天记录(不在TKMsgLog里面代表一句话都没发)
+        if e.body['target_id'] in TKMsgLog['TKMsgChannel']:
+            filename = f"./log/ticket/{TKlog['msg_pair'][e.body['msg_id']]}.json"
+            os.makedirs(os.path.dirname(filename), exist_ok=True)#保存之前创建该文件（不然会报错）
+            with open(filename, 'w', encoding='utf-8') as fw2:
+                json.dump(TKMsgLog['data'][e.body['target_id']], fw2, indent=2, sort_keys=True, ensure_ascii=False)
+            print(f"[TK.CLOSE] save log msg of {TKlog['msg_pair'][e.body['msg_id']]}")
 
-        # 是，删除频道
+        # 保存完毕记录后，删除频道
         url2=kook_base+'/api/v3/channel/delete'
         params2 = {"channel_id": e.body['target_id']}
         async with aiohttp.ClientSession() as session:
             async with session.post(url2, data=params2,headers=headers) as response:
-                    ret2=json.loads(await response.text())
-                    #print(ret2)
+                ret2=json.loads(await response.text())
+        print(f"[TK.CLOSE] delete channel {e.body['target_id']}")
 
         # 记录信息
         no = TKlog['msg_pair'][e.body['msg_id']] #通过消息id获取到ticket的编号
@@ -317,6 +318,7 @@ async def btn_close(b: Bot, e: Event):
         TKlog['data'][no]['end_usr'] = e.body['user_id'] #是谁关闭的
         TKlog['data'][no]['end_usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
         del TKlog['msg_pair'][e.body['msg_id']] #删除键值对
+        print(f"[TK.CLOSE] TKlog handling finished NO:{no}")
 
         # 发送消息给开启该tk的用户和log频道
         cm = CardMessage()
@@ -330,16 +332,54 @@ async def btn_close(b: Bot, e: Event):
         open_usr = await bot.client.fetch_user(TKlog['data'][no]['usr_id'])
         log_usr_sent = await open_usr.send(cm) #发送给用户
         log_ch_sent = await log_ch.send(cm) #发送到频道
-        TKlog['data'][no]['log_msg_id'] = log_ch_sent['msg_id']
+        TKlog['data'][no]['log_ch_msg_id'] = log_ch_sent['msg_id']
+        TKlog['data'][no]['log_usr_msg_id'] = log_usr_sent['msg_id']
+        print(f"[TK.CLOSE] TKlog msg send finished - ChMsgID:{log_ch_sent['msg_id']} - UMsgID:{log_usr_sent['msg_id']}")
 
         # 保存到文件
         with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
             json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
-        print(f"[Close TK] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}")
+        print(f"[TK.CLOSE] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}")
     except:
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
         print(err_str)
+
+# 记录ticket频道的聊天记录
+@bot.command(regex=r'(.+)')
+async def log_tk_msg(msg: Message, *arg):
+    try:
+        # 判断频道id是否在以开启的tk日志中，如果不在，则return
+        if msg.ctx.channel.id not in TKlog["TKchannel"]:
+            return
+        
+        # 如果不在TKMsgLog日志中，说明是初次发送消息，则创建键值
+        no = TKlog["TKchannel"][msg.ctx.channel.id]
+        if msg.ctx.channel.id not in TKMsgLog["TKMsgChannel"]:
+            log = {'first_msg_time':GetTime(),'msg':{}}
+            TKMsgLog['data'][msg.ctx.channel.id] = log
+            TKMsgLog['TKMsgChannel'][msg.ctx.channel.id] = GetTime() # 添加频道，代表该频道有发送过消息
+        
+        # 如果在，那么直接添加消息就行
+        TKMsgLog['data'][msg.ctx.channel.id]['msg'][str(time.time())] = {
+            "msg_id":msg.id,
+            "channel_id":msg.ctx.channel.id,
+            "user_id":msg.author_id,
+            "user_name":f"{msg.author.nickname}#{msg.author.identify_num}",
+            "content": msg.content,
+            "time":GetTime()
+        }
+        print(f"[{GetTime()}] NO:{no} Au:{msg.author_id} {msg.author.nickname}#{msg.author.identify_num} = {msg.content}")
+    except:
+        err_str = f"ERR! [{GetTime()}] log_tk_msg\n```\n{traceback.format_exc()}\n```"
+        await debug_ch.send(err_str)
+        print(err_str)
+
+@bot.task.add_interval(minutes=5)
+async def ticket_msg_log_save():
+    with open("./log/TicketMsgLog.json", 'w', encoding='utf-8') as fw2:
+        json.dump(TKMsgLog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+    print(f"[TK.MSG.LOG.SAVE] TKMsgLog save at {GetTime()}")
     
 ################################以下是给用户上色功能的内容########################################
 
@@ -512,6 +552,9 @@ async def update_reminder(b: Bot, event: Event):
         fr1.close()
         if flag == 0: #回复的表情不合法
             await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
+
+
+###################################################################################################################################
 
 # 开机的时候打印一次时间，记录重启时间
 print(f"Start at: [%s]" % start_time)

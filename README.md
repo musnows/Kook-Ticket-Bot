@@ -44,10 +44,7 @@ pip install requests
     "管理员角色id 1",
     "管理员角色id 2"
   ],
-  "admin_user": [
-    "管理员用户id 1",
-    "管理员用户id 2"
-  ],
+  "guild_id":"ticket bot 所服务的服务器id",
   "category_id": "隐藏掉的频道分组id",
   "channel_id": {},
   "log_channel": "用于发送ticket日志的文字频道id",

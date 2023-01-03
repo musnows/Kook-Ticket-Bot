@@ -336,8 +336,8 @@ async def ticket_close(b: Bot, e: Event):
         print(err_str)
 
 # 记录ticket频道的聊天记录
-@bot.command(regex=r'(.+)')
-async def ticket_msg_log(msg: Message, *arg):
+@bot.on_message()
+async def ticket_msg_log(msg: Message):
     try:
         # 判断频道id是否在以开启的tk日志中，如果不在，则return
         if msg.ctx.channel.id not in TKlog["TKchannel"]:

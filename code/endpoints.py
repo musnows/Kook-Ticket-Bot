@@ -57,3 +57,15 @@ async def upd_card(msg_id: str,
     else:
         result = await bot.client.gate.request('POST', 'direct-message/update', data=data)
     return result
+
+# 判断用户是否拥有管理员权限
+async def has_admin(user_id, guild_id):
+    guild = await bot.client.fetch_guild(guild_id)
+    user_roles = (await guild.fetch_user(user_id)).roles
+    guild_roles = await (await bot.client.fetch_guild(guild_id)).fetch_roles()
+    for i in guild_roles:  # 遍历服务器身分组
+        if i.id in user_roles and i.has_permission(0):  # 查看当前遍历到的身分组是否在用户身分组内且是否有管理员权限
+            return True
+    if user_id == guild.master_id: # 由于腐竹可能没给自己上身分组，但是依旧拥有管理员权限
+        return True
+    return False

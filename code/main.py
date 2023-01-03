@@ -70,7 +70,7 @@ async def atBOT(msg: Message, mention_str: str):
     
 #####################################机器人动态#########################################
  
-from status import status_active_game,status_active_music,status_delete,upd_card
+from endpoints import status_active_game,status_active_music,status_delete,upd_card
 
 # 开始打游戏
 @bot.command()
@@ -118,13 +118,24 @@ with open('./log/TicketLog.json', 'r', encoding='utf-8') as f2:
 with open('./log/TicketMsgLog.json', 'r', encoding='utf-8') as f2:
     TKMsgLog = json.load(f2)
 
+# 判断用户是否在管理员身份组里面
+async def user_in_admin_role(guild_id:str,user_id:str):
+    # 通过服务器id和用户id获取用户在服务器中的身份组
+    guild = await bot.client.fetch_guild(guild_id)
+    user_roles = (await guild.fetch_user(user_id)).roles
+    for ar in user_roles:# 遍历用户的身份组，看看有没有管理员身份组id
+        if str(ar) in TKconf["admin_role"]:
+            return True
+
+    return False
+
 # ticket系统,发送卡片消息
 @bot.command()
 async def ticket(msg: Message):
     logging(msg)
     global TKconf
     try:
-        if msg.author_id in TKconf["admin_user"]:
+        if (await user_in_admin_role(msg.ctx.guild.id,msg.author_id)):
             ch_id = msg.ctx.channel.id #当前所处的频道id
             # 发送消息
             send_msg = await msg.ctx.channel.send(
@@ -163,7 +174,7 @@ async def ticket_commit(msg: Message,tkno:str,*args):
         return
     try:
         global TKconf,TKlog
-        if msg.author_id in TKconf["admin_user"]:
+        if (await user_in_admin_role(msg.ctx.guild.id,msg.author_id)):
             if tkno not in TKlog['data']:
                 await msg.reply("您输入的ticket编号未在数据库中！")
                 return
@@ -268,25 +279,25 @@ async def ticket_close(b: Bot, e: Event):
     try:
         # 避免与tiket申请按钮冲突（文字频道id）
         if e.body['target_id'] in TKconf["channel_id"]:
-            print(f"[BTN_CLICK] channel_id in TKconf:{e.body['msg_id']}")
+            print(f"[TK.CLOSE] BTN.CLICK channel_id in TKconf:{e.body['msg_id']}")
             return
 
         # 判断关闭按钮的卡片消息id是否在以开启的tk日志中，如果不在，则return
         if e.body['msg_id'] not in TKlog["msg_pair"]:
-            print(f"[BTN_CLICK] msg_id not in log:{e.body['msg_id']}")
+            print(f"[TK.CLOSE] BTN.CLICK msg_id not in TKlog:{e.body['msg_id']}")
             return
         
-        # 基本有效则打印json内容
+        # 基本有效则打印event的json内容
         loggingE(e,"TK.CLOSE")
 
-        #判断是否为管理员，只有管理可以关闭tk
-        if e.body['user_id'] not in TKconf["admin_user"]: 
+        # 判断是否为管理员，只有管理可以关闭tk
+        if not (await user_in_admin_role(e.body['guild_id'],e.body['user_id'])):
             temp_ch = await bot.client.fetch_public_channel(e.body['target_id'])
             await temp_ch.send(f"```\n抱歉，只有管理员用户可以关闭ticket\n```")
-            print(f"[BTN_CLICK] by none admin usr:{e.body['user_id']} - C:{e.body['target_id']}")
+            print(f"[TK.CLOSE] BTN.CLICK by none admin usr:{e.body['user_id']} - C:{e.body['target_id']}")
             return
 
-        #保存ticket的聊天记录(不在TKMsgLog里面代表一句话都没发)
+        # 保存ticket的聊天记录(不在TKMsgLog里面代表一句话都没发)
         if e.body['target_id'] in TKMsgLog['TKMsgChannel']:
             filename = f"./log/ticket/{TKlog['msg_pair'][e.body['msg_id']]}.json"
             os.makedirs(os.path.dirname(filename), exist_ok=True)#保存之前创建该文件（不然会报错）

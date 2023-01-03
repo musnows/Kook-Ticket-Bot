@@ -49,6 +49,8 @@ def help_text():
     text = "ticket-bot的命令操作\n"
     text+=f"`/ticket` 在本频道发送一条消息，作为ticket的开启按钮\n"
     text+=f"`/tkcm 工单id 备注` 对某一条已经关闭的工单进行备注\n"
+    text+=f"`/aar 角色id` 将角色id添加进入管理员角色\n"
+    text+=f"```\nid获取办法：kook设置-高级设置-打开开发者模式；右键用户头像即可复制用户id，右键频道/分组即可复制id，角色id需要进入服务器管理面板的角色页面中右键复制\n```\n"
     text+=f"以上命令都需要管理员才能操作\n"
     text+=f"`/gaming 游戏选项` 让机器人开始打游戏(代码中指定了几个游戏)\n"
     text+=f"`/singing 歌名 歌手` 让机器人开始听歌\n"
@@ -120,6 +122,8 @@ with open('./log/TicketMsgLog.json', 'r', encoding='utf-8') as f2:
 
 # 判断用户是否在管理员身份组里面
 async def user_in_admin_role(guild_id:str,user_id:str):
+    if guild_id != TKconf['guild_id']: 
+        return False # 如果不是预先设置好的服务器直接返回错误，避免bot被邀请到其他服务器去
     # 通过服务器id和用户id获取用户在服务器中的身份组
     guild = await bot.client.fetch_guild(guild_id)
     user_roles = (await guild.fetch_user(user_id)).roles
@@ -203,6 +207,44 @@ async def ticket_commit(msg: Message,tkno:str,*args):
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
         await msg.reply(f"{err_str}")
         print(err_str)
+
+@bot.command(name='add_admin_role',aliases=['aar'])
+async def ticket_admin_role_add(msg:Message,role_id="",*arg):
+    logging(msg)
+    if role_id == "":
+        await msg.reply("请提供需要添加的角色id")
+        return
+    try:
+        if not (await user_in_admin_role(msg.ctx.guild.id,msg.author_id)):
+            await msg.reply(f"您没有权限执行本命令！")
+            return
+        
+        global TKconf
+        if role_id in TKconf['admin_role']:
+            await msg.reply("这个id已经在配置文件 `TKconf['admin_role']` 中啦！")
+            return
+
+        guild_roles = await (await bot.client.fetch_guild(msg.ctx.guild.id)).fetch_roles()
+        print(guild_roles)
+        for r in guild_roles:
+            if int(role_id) == r.id:
+                TKconf['admin_role'].append(role_id)
+                await msg.reply(f"{role_id} 添加成功！")
+                # 保存到文件
+                with open("./config/TicketConf.json", 'w', encoding='utf-8') as fw2:
+                    json.dump(TKconf, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+                print(f"[ADD.ADMIN.ROLE] role_id:{role_id} add to TKconf")
+                break
+        else:
+            await msg.reply(f"添加错误，请确认您提交的是本服务器的角色id")
+
+    except:
+        err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        await msg.reply(f"{err_str}")
+        print(err_str)
+
+
+######################################### ticket 监看 ###############################################################
 
 # 监看工单系统(开启)
 # 相关api文档 https://developer.kaiheila.cn/doc/http/channel#%E5%88%9B%E5%BB%BA%E9%A2%91%E9%81%93

@@ -35,9 +35,9 @@ def logging(msg: Message):
     now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
     print(f"[{now_time}] G:{msg.ctx.guild.id} - C:{msg.ctx.channel.id} - Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - content:{msg.content}")
 
-def logging2(e: Event):
+def loggingE(e: Event,func=""):
     now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
-    print(f"[{now_time}] Event:{e.body}")
+    print(f"[{now_time}] {func} Event:{e.body}")
 
 # `/hello`指令，一般用于测试bot是否成功上线
 @bot.command(name='hello')
@@ -196,12 +196,12 @@ async def ticket_commit(msg: Message,tkno:str,*args):
 # 监看工单系统(开启)
 # 相关api文档 https://developer.kaiheila.cn/doc/http/channel#%E5%88%9B%E5%BB%BA%E9%A2%91%E9%81%93
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
-async def btn_ticket(b: Bot, e: Event):
+async def ticket_open(b: Bot, e: Event):
     # 判断是否为ticket申请频道的id（文字频道id）
     global TKconf,TKlog
     try:
         if e.body['target_id'] in TKconf["channel_id"]:
-            logging2(e)
+            loggingE(e,"TK.OPEN")
             global kook_base,headers
             url1=kook_base+"/api/v3/channel/create"# 创建频道
             params1 = {"guild_id": e.body['guild_id'] ,"parent_id":TKconf["category_id"],"name":e.body['user_info']['username']}
@@ -264,7 +264,7 @@ async def btn_ticket(b: Bot, e: Event):
 
 # 监看工单关闭情况
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
-async def btn_close(b: Bot, e: Event):
+async def ticket_close(b: Bot, e: Event):
     try:
         # 避免与tiket申请按钮冲突（文字频道id）
         if e.body['target_id'] in TKconf["channel_id"]:
@@ -277,18 +277,8 @@ async def btn_close(b: Bot, e: Event):
             return
         
         # 基本有效则打印json内容
-        logging2(e)
+        loggingE(e,"TK.CLOSE")
 
-        # global kook_base,headers,TKlog
-        # url0=kook_base+"/api/v3/channel/view"#获取频道的信息
-        # params1 = {"target_id": e.body['target_id']}
-        # async with aiohttp.ClientSession() as session:
-        #     async with session.post(url0, data=params1,headers=headers) as response:
-        #             ret1=json.loads(await response.text())
-        # # 判断发生点击事件的频道是否在预定分组下，如果不是就不进行操作
-        # if ret1['data']['parent_id'] != TKconf["category_id"]:
-        #     return
-        
         #判断是否为管理员，只有管理可以关闭tk
         if e.body['user_id'] not in TKconf["admin_user"]: 
             temp_ch = await bot.client.fetch_public_channel(e.body['target_id'])
@@ -347,7 +337,7 @@ async def btn_close(b: Bot, e: Event):
 
 # 记录ticket频道的聊天记录
 @bot.command(regex=r'(.+)')
-async def log_tk_msg(msg: Message, *arg):
+async def ticket_msg_log(msg: Message, *arg):
     try:
         # 判断频道id是否在以开启的tk日志中，如果不在，则return
         if msg.ctx.channel.id not in TKlog["TKchannel"]:
@@ -375,6 +365,7 @@ async def log_tk_msg(msg: Message, *arg):
         await debug_ch.send(err_str)
         print(err_str)
 
+# 定时保存TKMsgLog
 @bot.task.add_interval(minutes=5)
 async def ticket_msg_log_save():
     with open("./log/TicketMsgLog.json", 'w', encoding='utf-8') as fw2:
@@ -471,9 +462,9 @@ async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
 
 # 判断消息的emoji回应，并给予不同角色
 @bot.on_event(EventTypes.ADDED_REACTION)
-async def update_reminder(b: Bot, event: Event):
+async def grant_roles(b: Bot, event: Event):
     g = await bot.client.fetch_guild(Guild_ID)# 填入服务器id
-    logging2(event)#事件日志
+    loggingE(event,"EMOJI.REACT")#事件日志
 
     channel = await bot.client.fetch_public_channel(event.body['channel_id']) #获取事件频道
     s = await bot.client.fetch_user(event.body['user_id'])#通过event获取用户id(对象)

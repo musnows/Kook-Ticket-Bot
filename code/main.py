@@ -614,6 +614,7 @@ async def loading_channel_cookie():
         print("[BOT.TASK] fetch_public_channel success")
     except:
         print("[BOT.TASK] fetch_public_channel failed")
+        print(traceback.format_exc())
         os._exit(-1)  #出现错误直接退出程序
 
 # 凭证传好了、机器人新建好了、指令也注册完了

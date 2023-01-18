@@ -15,8 +15,7 @@ A ticket bot for KOOK 表单系统机器人
 使用本机器人之前，请先安装以下依赖项
 
 ```
-pip install khl.py
-pip install requests
+pip install -r reqiurements.txt
 ```
 
 ## Config
@@ -55,6 +54,10 @@ ticket机器人需要您创建一个对全体成员不可见的隐藏分组，�
 
 > id获取办法：`kook设置-高级设置-打开开发者模式`；右键用户头像即可复制用户id，右键频道/分组即可复制id，角色id需要进入服务器管理面板的角色页面中右键复制
 
+`admin_role`中的管理员角色，即为机器人发送的ticket消息中会`@`的角色组；且只有拥有管理员身份组的用户，才能`关闭ticket/给ticket写评论`
+
+<img src="./screenshots/tk2.png" wight="350px" height="220px" alt="bot发送附带关闭按钮的卡片">
+
 ### 3.TicketLog
 
 在 `code/log` 路径中新增 `TicketLog.json`，并填入以下字段
@@ -86,7 +89,9 @@ ticket机器人需要您创建一个对全体成员不可见的隐藏分组，�
 * TKMsgChannel是用于记录bot创建的ticket频道id，和ticket编号对应，用来判断ticket频道是否有过消息（避免出现没有发过消息就关闭ticket频道的情况）
 * data为消息记录，作为ticket频道的消息记录
 
-为了保存聊天记录，还需要创建 `code/log/ticket` 文件夹，bot会在ticket关闭后，按照编号，保存 `编号.json` 文件，并删除 `TicketMsgLog.json` 中 `data` 字段里面的内容
+为了保存聊天记录，还需要创建 `code/log/ticket` 文件夹，bot会在ticket关闭后，按照编号，保存 `code/log/ticket/编号.json` 文件，并删除 `TicketMsgLog.json` 中 `data` 字段里面的内容。
+
+- [ ] 后续会增加bot发送聊天记录文件到频道的功能
 
 ----
 

@@ -1,6 +1,6 @@
 # encoding: utf-8:
 import json
-import requests
+import asyncio
 import aiohttp
 import time
 import traceback
@@ -9,6 +9,7 @@ import os
 from khl import Bot, Message, EventTypes, Event,Client,PublicMessage
 from khl.card import CardMessage, Card, Module, Element, Types, Struct
 from khl.command import Rule
+from endpoints import *
 
 # 新建机器人，token 就是机器人的身份凭证
 with open('./config/config.json', 'r', encoding='utf-8') as f:
@@ -16,10 +17,6 @@ with open('./config/config.json', 'r', encoding='utf-8') as f:
 # 用读取来的 config 初始化 bot，字段对应即可
 bot = Bot(token=config['token'])
 
-# kook api的头链接，请不要修改
-kook_base="https://www.kookapp.cn"
-Botoken = config['token']
-headers={f'Authorization': f"Bot {Botoken}"}
 debug_ch = None #bug 修复频道
 log_ch = None #tikcet log频道
 
@@ -71,8 +68,7 @@ async def atBOT(msg: Message, mention_str: str):
     await msg.reply(text)
     
 #####################################机器人动态#########################################
- 
-from endpoints import status_active_game,status_active_music,status_delete,upd_card
+
 
 # 开始打游戏
 @bot.command()
@@ -255,35 +251,29 @@ async def ticket_open(b: Bot, e: Event):
     try:
         if e.body['target_id'] in TKconf["channel_id"]:
             loggingE(e,"TK.OPEN")
-            global kook_base,headers
-            url1=kook_base+"/api/v3/channel/create"# 创建频道
-            params1 = {"guild_id": e.body['guild_id'] ,"parent_id":TKconf["category_id"],"name":e.body['user_info']['username']}
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url1, data=params1,headers=headers) as response:
-                        ret1=json.loads(await response.text())
-                        #print(ret1["data"]["id"])
+            # 1.创建一个以开启ticket用户昵称为名字的文字频道
+            ret1 = await channel_create(e.body['guild_id'],TKconf["category_id"],e.body['user_info']['username'])
+            # 2.先设置管理员角色的权限
+            for rol in TKconf['admin_role']:
+                # 在该频道创建一个角色权限
+                await crole_create(ret1["data"]["id"],"role_id",rol)
+                # 设置该频道的角色权限为可见
+                await crole_update(ret1["data"]["id"],"role_id",rol,2048)
+                asyncio.sleep(0.2)# 休息一会 避免超速
+                
 
-            url2=kook_base+"/api/v3/channel-role/create"#创建角色权限
-            params2 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id']}
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url2, data=params2,headers=headers) as response:
-                        ret2=json.loads(await response.text())
-                        #print(f"ret2: {ret2}")
-            
-            # 服务器角色权限值见 https://developer.kaiheila.cn/doc/http/guild-role
-            url3=kook_base+"/api/v3/channel-role/update"#设置角色权限
-            params3 = {"channel_id": ret1["data"]["id"] ,"type":"user_id","value":e.body['user_id'],"allow":2048}
-            async with aiohttp.ClientSession() as session:
-                async with session.post(url3, data=params3,headers=headers) as response:
-                        ret3=json.loads(await response.text())
-                        #print(f"ret3: {ret3}")
-            
-            # 管理员角色id，修改配置文件中的对应部分
+            # 3.设置该频道的用户权限（开启tk的用户）
+            # 在该频道创建一个用户权限
+            await crole_create(ret1["data"]["id"],"user_id",e.body['user_id'])
+            # 设置该频道的用户权限为可见
+            await crole_update(ret1["data"]["id"],"user_id",e.body['user_id'],2048)
+
+            # 管理员角色id，修改配置文件中的admin_role部分
             text = f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n"
             for roles_id in TKconf["admin_role"]:
                 text+=f"(rol){roles_id}(rol) "
             text+="\n"
-            
+            # 4.在创建出来的频道发送消息
             cm = CardMessage()
             c1 = Card(Module.Section(Element.Text(text,Types.Text.KMD)))
             c1.append(Module.Section('帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n'))
@@ -292,7 +282,7 @@ async def ticket_open(b: Bot, e: Event):
             channel = await bot.client.fetch_public_channel(ret1["data"]["id"]) 
             sent = await bot.client.send(channel,cm)
 
-            #发送消息完毕，记录消息信息
+            # 5.发送消息完毕，记录消息信息
             no = str(TKlog["TKnum"])#消息的编号，改成str处理
             no = no.rjust(8, '0')
             TKlog['data'][no] = {}
@@ -305,7 +295,7 @@ async def ticket_open(b: Bot, e: Event):
             TKlog['TKchannel'][ret1["data"]["id"]] = no #记录bot创建的频道id，用于消息日志
             TKlog['TKnum']+=1
 
-            # 保存到文件
+            # 6.保存到文件
             with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
                 json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
             print(f"[TK.OPEN] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}")

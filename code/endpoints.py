@@ -1,17 +1,17 @@
 import json
 import time
 import aiohttp
-
 from typing import Union
 from khl import  Bot,Message,ChannelPrivacyTypes
-from khl.card import Card, CardMessage, Element, Module, Types
 
 
 with open('./config/config.json', 'r', encoding='utf-8') as f:
     config = json.load(f)
 bot = Bot(token=config['token'])
 Botoken=config['token']
-
+# kook api的头链接，请不要修改
+kook_base="https://www.kookapp.cn"
+headers={f'Authorization': f"Bot {Botoken}"}
 
 # 让机器人开始打游戏
 async def status_active_game(game:int):
@@ -69,3 +69,43 @@ async def has_admin(user_id, guild_id):
     if user_id == guild.master_id: # 由于腐竹可能没给自己上身分组，但是依旧拥有管理员权限
         return True
     return False
+
+
+# 创建文字频道
+async def channel_create(guild_id:str,parent_id:str,name:str):
+    url1=kook_base+"/api/v3/channel/create"# 创建频道
+    params1 = {"guild_id": guild_id ,"parent_id":parent_id,"name":name}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url1, data=params1,headers=headers) as response:
+                ret1=json.loads(await response.text())
+                #print(ret1["data"]["id"])
+    return ret1
+
+# 创建角色权限
+async def crole_create(channel_id:str,_type:str,_value:str):
+    """
+        type: user_id / role_id
+        value: base on type
+    """
+    url2=kook_base+"/api/v3/channel-role/create"#创建角色权限
+    params2 = {"channel_id": channel_id ,"type":_type,"value":_value}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url2, data=params2,headers=headers) as response:
+                ret2=json.loads(await response.text())
+                #print(f"ret2: {ret2}")
+    return ret2
+
+
+# 设置角色权限
+async def crole_update(channel_id:str,_type:str,_value:str,_allow:int):
+    """服务器角色权限值见 https://developer.kaiheila.cn/doc/http/guild-role
+    - type: user_id / role_id
+    - value: base on type
+    """
+    url3=kook_base+"/api/v3/channel-role/update"#设置角色权限
+    params3 = {"channel_id": channel_id ,"type":_type,"value":_value,"allow":_allow}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url3, data=params3,headers=headers) as response:
+                ret3=json.loads(await response.text())
+                #print(f"ret3: {ret3}")
+    return ret3

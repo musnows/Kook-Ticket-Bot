@@ -12,7 +12,7 @@ A ticket bot for KOOK 表单系统机器人
 
 ## Requerments
 
-使用本机器人之前，请先安装以下依赖项
+使用本机器人之前，请先确认您的python版本高于`3.7`, 安装以下依赖项
 
 ```
 pip install -r reqiurements.txt
@@ -35,7 +35,7 @@ pip install -r reqiurements.txt
 
 ### 2.TicketConfig
 
-在 `code/config`路径中新增`TicketConf.json`，并填入以下内容
+在 `code/config`路径中新增`TicketConf.json`，并填入以下内容（注意，这里的键值都不能修改）
 
 ```json
 {
@@ -52,11 +52,34 @@ pip install -r reqiurements.txt
 ```
 ticket机器人需要您创建一个对全体成员不可见的隐藏分组，设置该分组权限为`@全体成员->分组不可见`来隐藏；并给管理员角色设置权限，让管理员能看到这个分组。
 
-> id获取办法：`kook设置-高级设置-打开开发者模式`；右键用户头像即可复制用户id，右键频道/分组即可复制id，角色id需要进入服务器管理面板的角色页面中右键复制
-
 `admin_role`中的管理员角色，即为机器人发送的ticket消息中会`@`的角色组；且只有拥有管理员身份组的用户，才能`关闭ticket/给ticket写评论`。
 
 <img src="./screenshots/tk2.png" wight="350px" height="220px" alt="bot发送附带关闭按钮的卡片">
+
+#### 关于命令权限问题
+
+> id获取办法：`kook设置-高级设置-打开开发者模式`；右键服务器头像，复制服务器id；右键用户头像即可复制用户id，右键频道/分组即可复制频道/分组id。
+
+只有拥有`admin_role`中角色的用户才能操作bot的管理命令。
+
+举例：服务器有个`摸鱼`角色，如果你想让一个张三可以操作bot的管理命令，那就需要给张三添加上`摸鱼`角色，并进入服务器的设置-角色管理-右键`摸鱼`角色，复制角色id，并把这个id添加到`"admin_role"`中
+
+<img src="./screenshots/role_id.png" wight="300px" height="200px" alt="角色id获取">
+
+假设`摸鱼`的角色id为114514，那么添加了之后的`TicketConf.json`配置文件应该如下
+
+```json
+  "admin_role": [
+    "114514"
+  ],
+  "guild_id":"ticket bot 所服务的服务器id",
+  "category_id": "隐藏掉的频道分组id",
+  "channel_id": {},
+  "log_channel": "用于发送ticket日志的文字频道id",
+  "debug_channel": "用于发送bot出错信息的文字频道id"
+```
+这样才能让用户操作`/ticket`命令
+
 
 ### 3.TicketLog
 

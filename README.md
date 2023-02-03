@@ -18,6 +18,12 @@ A ticket bot for KOOK 表单系统机器人
 pip install -r reqiurements.txt
 ```
 
+完成下方的配置后，就可以运行bot了 (注意 工作路径是code目录)
+
+```
+python main.py
+```
+
 ## Config
 
 因为bot开机的时候就会打开下面的文件，若缺少字段，会影响bot的正常运行

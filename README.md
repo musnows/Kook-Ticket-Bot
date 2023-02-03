@@ -75,6 +75,7 @@ ticket机器人需要您创建一个对全体成员不可见的隐藏分组，�
 假设`摸鱼`的角色id为114514，那么添加了之后的`TicketConf.json`配置文件应该如下
 
 ```json
+{
   "admin_role": [
     "114514"
   ],
@@ -83,6 +84,7 @@ ticket机器人需要您创建一个对全体成员不可见的隐藏分组，�
   "channel_id": {},
   "log_channel": "用于发送ticket日志的文字频道id",
   "debug_channel": "用于发送bot出错信息的文字频道id"
+}
 ```
 这样才能让用户操作`/ticket`命令
 

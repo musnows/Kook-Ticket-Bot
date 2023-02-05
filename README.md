@@ -39,9 +39,7 @@ nohup python -u main.py >> ./log/bot.log 2>&1 &
 
 ```json
 {
-    "token": "kook-bot websocket token",
-    "verify_token": "",
-    "encrypt_key": ""
+    "token": "kook-bot websocket token"
 }
 ```
 
@@ -51,15 +49,17 @@ nohup python -u main.py >> ./log/bot.log 2>&1 &
 
 ```json
 {
-  "admin_role": [
-    "管理员角色id 1",
-    "管理员角色id 2"
-  ],
   "guild_id":"ticket bot 所服务的服务器id",
-  "category_id": "隐藏掉的频道分组id",
-  "channel_id": {},
-  "log_channel": "用于发送ticket日志的文字频道id",
-  "debug_channel": "用于发送bot出错信息的文字频道id"
+  "ticket": {
+    "admin_role": [
+      "管理员角色id 1",
+      "管理员角色id 2"
+    ],
+    "category_id": "隐藏掉的频道分组id",
+    "channel_id": {},
+    "log_channel": "用于发送ticket日志的文字频道id",
+    "debug_channel": "用于发送bot出错信息的文字频道id"
+  }
 }
 ```
 ticket机器人需要您创建一个对全体成员不可见的隐藏分组，设置该分组权限为`@全体成员->分组不可见`来隐藏；并给管理员角色设置权限，让管理员能看到这个分组。
@@ -74,7 +74,7 @@ ticket机器人需要您创建一个对全体成员不可见的隐藏分组，�
 
 只有拥有`admin_role`中角色的用户才能操作bot的管理命令。
 
-举例：服务器有个`摸鱼`角色，如果你想让一个张三可以操作bot的管理命令，那就需要给张三添加上`摸鱼`角色，并进入服务器的设置-角色管理-右键`摸鱼`角色，复制角色id，并把这个id添加到`"admin_role"`中
+举例：服务器有个`摸鱼`角色，如果你想让**张三**可以操作bot的管理命令，那就需要给**张三**添加上`摸鱼`角色，并进入服务器的设置-角色管理-右键`摸鱼`角色，复制角色id，并把这个id添加到`"admin_role"`中
 
 <img src="./screenshots/role_id.png" wight="300px" height="200px" alt="角色id获取">
 
@@ -82,17 +82,19 @@ ticket机器人需要您创建一个对全体成员不可见的隐藏分组，�
 
 ```json
 {
-  "admin_role": [
-    "114514"
-  ],
   "guild_id":"ticket bot 所服务的服务器id",
-  "category_id": "隐藏掉的频道分组id",
-  "channel_id": {},
-  "log_channel": "用于发送ticket日志的文字频道id",
-  "debug_channel": "用于发送bot出错信息的文字频道id"
+  "ticket": {
+    "admin_role": [
+      "114514"
+    ],
+    "category_id": "隐藏掉的频道分组id",
+    "channel_id": {},
+    "log_channel": "用于发送ticket日志的文字频道id",
+    "debug_channel": "用于发送bot出错信息的文字频道id"
+  }
 }
 ```
-这样才能让用户操作`/ticket`命令
+这样才能让**张三**操作`/ticket`命令
 
 
 ### 3.TicketLog
@@ -160,35 +162,74 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 ### emoji/role
 
->这个功能写的很烂。虽然能用，但效率很低，后续会重写
+这个功能的作用是根据一条消息的表情回应，给用户上对应的角色。类似于YY里的上马甲。
 
-如果你想使用通过表情回应来上角色的功能，则还需要添加 `code/config/emoji.txt`
+要想使用本功能，请在 `code/TicketConf.json` 里面追加如下字段
 
-举个栗子：emoji_id 🎙 对应 role_id `4779921`，则需要在`emoji.txt`中写入下面内容
+```json
+  "emoji": {
+    "乱写一个字符串，以后不要修改": {
+      "channel_id": "该消息的频道id",
+      "data": {},
+      "msg_id": "消息id"
+    }
+  }
 ```
-🎙:4779921
+随后要做的是，在`data`里面添加emoji和角色id的对照表，示例如下
+
+> 角色ID获取：设置内开启开发者模式后，进入服务器后台，右键角色复制id
+
+```json
+  "emoji": {
+    "乱写一个字符串，以后不要修改": {
+      "channel_id": "该消息的频道id",
+      "data": {
+        "❤": "3970687",
+        "🐷": "2881825",
+        "👍": "0",
+        "💙": "2928540",
+        "💚": "2904370",
+        "💛": "2882418",
+        "💜": "2907567",
+        "🖤": "4196071"
+      },
+      "msg_id": "消息id"
+    }
+  }
 ```
-bot会根据emoji_id给用户上对应的角色
+如果你有多个消息（比如不同的角色逻辑），那就在后续追加字段
+
+```json
+  "emoji": {
+    "乱写一个字符串A，以后不要修改": {
+      "channel_id": "该消息的频道id",
+      "data": {
+        "❤": "3970687",
+        "🐷": "2881825",
+        "👍": "0",
+        "💙": "2928540",
+        "💚": "2904370",
+        "💛": "2882418",
+        "💜": "2907567",
+        "🖤": "4196071"
+      },
+      "msg_id": "消息id"
+    },
+    "乱写一个字符串B，以后不要修改": {
+      "channel_id": "该消息的频道id",
+      "data": {},
+      "msg_id": "消息id"
+    }
+  }
+```
+
+bot会根据`emoji_id`给用户上对应的角色
 
 <img src="./screenshots/role2.png" wight="250px" height="160px">
 
 <img src="./screenshots/role1.png" wight="350px" height="210px">
 
-看`L109-113`，我设置了3个不同的 Msg_ID 给 `add_reaction event`，因为需要设置不同分类的角色
-```
-# 设置自动上色event的服务器id和消息id
-Guild_ID = '1573724356603748'
-Msg_ID_1 = '0a4b9403-de0b-494e-b216-3d1dbe957d0f'
-Msg_ID_2 = '5d92f952-15c1-46a4-b370-41a9cf739e50'
-Msg_ID_3 = 'd4dbb164-bd80-469b-9473-8285a9c91e0d'
-```
-对应的，判断函数也被分为了3个不同的情况。你可以根据你的实际需要修改/弃用一部分代码。
 
-同时，`L115-170`则是3个不同的idsave文件，用来保存已经领取过角色的用户。这样设计可以让每一个用户只能在一个Msg_ID下领取其中一个角色。避免刷角色的情况。
-
-<img src="./screenshots/role3.png" wight="200px" height="110px">
-
->更多代码示例，请查看`code/main.py` 的 `L192-L270`
 
 ## The end
 有任何问题，请添加`issue`，或加入我的交流服务器与我联系 [kook邀请链接](https://kook.top/gpbTwZ)

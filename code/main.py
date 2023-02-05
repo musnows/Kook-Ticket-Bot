@@ -10,7 +10,7 @@ from khl import Bot, Message, EventTypes, Event,Client,PublicChannel
 from khl.card import CardMessage, Card, Module, Element, Types
 from khl.command import Rule
 from KookApi import *
-from utils import Botconf,TKconf,EMconf,TKMsgLog,TKlog,logging,loggingE,help_text,GetTime
+from utils import Botconf,TKconf,TKMsgLog,TKlog,logging,loggingE,help_text,GetTime,write_file
 
 # config是在utils.py中读取的，直接import就能使用
 bot = Bot(token=Botconf['token'])
@@ -140,8 +140,7 @@ async def ticket(msg: Message):
                 print(f"[{GetTime()}] [Add TKch] Au:{msg.author_id} ChID:{ch_id} New_MsgID:{send_msg['msg_id']} Old:{old_msg}")
 
             # 保存到文件
-            with open("./config/TicketConf.json", 'w', encoding='utf-8') as fw2:
-                json.dump(TKconf, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+            await write_file("./config/TicketConf.json",TKconf)
         else:
             await msg.reply(f"您没有权限执行本命令！")
     except:
@@ -181,8 +180,7 @@ async def ticket_commit(msg: Message,tkno:str,*args):
             cm.append(c)
             await upd_card(TKlog['data'][tkno]['log_msg_id'], cm, channel_type=msg.channel_type)
             # 保存到文件
-            with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
-                json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+            await write_file("./log/TicketLog.json",TKlog)
             print(f"[{GetTime()}] [Cmt.TK] Au:{msg.author_id} - TkID:{tkno} = {cmt}")
         else:
             await msg.reply(f"您没有权限执行本命令！")
@@ -214,8 +212,7 @@ async def ticket_admin_role_add(msg:Message,role_id="",*arg):
                 TKconf['admin_role'].append(role_id)
                 await msg.reply(f"{role_id} 添加成功！")
                 # 保存到文件
-                with open("./config/TicketConf.json", 'w', encoding='utf-8') as fw2:
-                    json.dump(TKconf, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+                await write_file("./config/TicketConf.json",TKconf)
                 print(f"[{GetTime()}] [ADD.ADMIN.ROLE] role_id:{role_id} add to TKconf")
                 break
         else:
@@ -283,8 +280,7 @@ async def ticket_open(b: Bot, e: Event):
             TKlog['TKnum']+=1
 
             # 6.保存到文件
-            with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
-                json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+            await write_file("./log/TicketLog.json",TKlog)
             print(f"[TK.OPEN] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}")
     except:
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
@@ -319,11 +315,10 @@ async def ticket_close(b: Bot, e: Event):
         # 保存ticket的聊天记录(不在TKMsgLog里面代表一句话都没发)
         if e.body['target_id'] in TKMsgLog['TKMsgChannel']:
             filename = f"./log/ticket/{TKlog['msg_pair'][e.body['msg_id']]}.json"
-            os.makedirs(os.path.dirname(filename), exist_ok=True)#保存之前创建该文件（不然会报错）
-            with open(filename, 'w', encoding='utf-8') as fw2:
-                json.dump(TKMsgLog['data'][e.body['target_id']], fw2, indent=2, sort_keys=True, ensure_ascii=False)
-            del TKMsgLog["data"][e.body['target_id']]
-            del TKMsgLog["TKMsgChannel"][e.body['target_id']]
+            # 保存日志到文件
+            await write_file(filename,TKMsgLog['data'][e.body['target_id']])
+            del TKMsgLog["data"][e.body['target_id']]         # 删除日志文件中的该频道 
+            del TKMsgLog["TKMsgChannel"][e.body['target_id']] 
             print(f"[{GetTime()}] [TK.CLOSE] save log msg of {TKlog['msg_pair'][e.body['msg_id']]}")
 
         # 保存完毕记录后，删除频道
@@ -359,8 +354,7 @@ async def ticket_close(b: Bot, e: Event):
         print(f"[{GetTime()}] [TK.CLOSE] TKlog msg send finished - ChMsgID:{log_ch_sent['msg_id']} - UMsgID:{log_usr_sent['msg_id']}")
 
         # 保存到文件
-        with open("./log/TicketLog.json", 'w', encoding='utf-8') as fw2:
-            json.dump(TKlog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+        await write_file("./log/TicketLog.json",TKlog)
         print(f"[{GetTime()}] [TK.CLOSE] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}")
     except:
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"

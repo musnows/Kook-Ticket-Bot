@@ -13,12 +13,12 @@ def open_file(path):
         tmp = json.load(f)
     return tmp
 # 写入文件
-async def write_file(path: str, value,ifAio:False):
+async def write_file(path: str, value,ifAio=False):
     if ifAio:
-        async with aiofiles.open(path, 'w', encoding='utf-8') as f:
+        async with aiofiles.open(path, 'w+', encoding='utf-8') as f:
             await f.write(json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False))
     else:
-        with open(path, 'w', encoding='utf-8') as fw2:
+        with open(path, 'w+', encoding='utf-8') as fw2:
             json.dump(value, fw2, indent=2, sort_keys=True, ensure_ascii=False)
 
 
@@ -44,11 +44,8 @@ def help_text():
 
 ###############################################################################################
 
-# 预先加载配置文件
-config = open_file('config/config.json')
-Botconf = config['bot']     # 机器人配置文件
-TKconf = config['ticket']   # 工单配置文件
-EMconf = config['emoji']    # 表情角色配置文件
+Botconf = open_file('config/config.json')      # 机器人配置文件
+TKconf = open_file('config/TicketConf.json')   # 工单配置文件/表情角色配置文件
 
 TKlog = open_file('./log/TicketLog.json')      # ticket 历史记录
 TKMsgLog = open_file('./log/TicketMsgLog.json')# ticket 消息记录

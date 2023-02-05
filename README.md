@@ -23,6 +23,12 @@ pip install -r reqiurements.txt
 ```
 python main.py
 ```
+如果是linux系统需要bot后台运行，使用如下命令
+
+```
+nohup python -u main.py >> ./log/bot.log 2>&1 &
+```
+
 
 ## Config
 

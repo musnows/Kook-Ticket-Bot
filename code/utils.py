@@ -49,3 +49,4 @@ TKconf = open_file('config/TicketConf.json')   # 工单配置文件/表情角色
 
 TKlog = open_file('./log/TicketLog.json')      # ticket 历史记录
 TKMsgLog = open_file('./log/TicketMsgLog.json')# ticket 消息记录
+ColorIdDict = open_file('./log/ColorID.json')  # 记录用户在某个消息下获取的角色

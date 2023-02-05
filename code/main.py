@@ -10,13 +10,14 @@ from khl import Bot, Message, EventTypes, Event,Client,PublicChannel
 from khl.card import CardMessage, Card, Module, Element, Types
 from khl.command import Rule
 from KookApi import *
-from utils import Botconf,TKconf,TKMsgLog,TKlog,logging,loggingE,help_text,GetTime,write_file
+from utils import Botconf,TKconf,TKMsgLog,TKlog,ColorIdDict,logging,loggingE,help_text,GetTime,write_file
 
 # config是在utils.py中读取的，直接import就能使用
 bot = Bot(token=Botconf['token'])
 
 debug_ch = PublicChannel # bug    日志频道
 log_ch = PublicChannel   # tikcet 日志频道
+Guild_ID = TKconf['guild_id'] # 服务器id
 
 #记录开机时间
 start_time = GetTime()
@@ -105,13 +106,13 @@ async def sleeping(msg: Message,d:int=0,*arg):
 
 # 判断用户是否在管理员身份组里面
 async def user_in_admin_role(guild_id:str,user_id:str):
-    if guild_id != TKconf['guild_id']: 
+    if guild_id != Guild_ID: 
         return False # 如果不是预先设置好的服务器直接返回错误，避免bot被邀请到其他服务器去
     # 通过服务器id和用户id获取用户在服务器中的身份组
     guild = await bot.client.fetch_guild(guild_id)
     user_roles = (await guild.fetch_user(user_id)).roles
     for ar in user_roles:# 遍历用户的身份组，看看有没有管理员身份组id
-        if str(ar) in TKconf["admin_role"]:
+        if str(ar) in TKconf["ticket"]["admin_role"]:
             return True
 
     return False
@@ -130,13 +131,13 @@ async def ticket(msg: Message):
                                 Card(Module.Section(
                                         '请点击右侧按钮发起ticket',
                                         Element.Button('发起ticket',Types.Click.RETURN_VAL)))))
-            if ch_id not in TKconf["channel_id"]: #如果不在    
+            if ch_id not in TKconf["ticket"]["channel_id"]: #如果不在    
                 # 发送完毕消息，并将该频道插入此目录
-                TKconf["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
+                TKconf["ticket"]["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
                 print(f"[{GetTime()}] [Add TKch] Au:{msg.author_id} ChID:{ch_id} MsgID:{send_msg['msg_id']}")
             else:
-                old_msg = TKconf["channel_id"][ch_id] #记录旧消息的id输出到日志
-                TKconf["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
+                old_msg = TKconf["ticket"]["channel_id"][ch_id] #记录旧消息的id输出到日志
+                TKconf["ticket"]["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
                 print(f"[{GetTime()}] [Add TKch] Au:{msg.author_id} ChID:{ch_id} New_MsgID:{send_msg['msg_id']} Old:{old_msg}")
 
             # 保存到文件
@@ -201,15 +202,15 @@ async def ticket_admin_role_add(msg:Message,role_id="",*arg):
             return
         
         global TKconf
-        if role_id in TKconf['admin_role']:
-            await msg.reply("这个id已经在配置文件 `TKconf['admin_role']` 中啦！")
+        if role_id in TKconf["ticket"]['admin_role']:
+            await msg.reply("这个id已经在配置文件 `TKconf['ticket']['admin_role']` 中啦！")
             return
 
         guild_roles = await (await bot.client.fetch_guild(msg.ctx.guild.id)).fetch_roles()
         print(guild_roles)
         for r in guild_roles:
             if int(role_id) == r.id:
-                TKconf['admin_role'].append(role_id)
+                TKconf["ticket"]['admin_role'].append(role_id)
                 await msg.reply(f"{role_id} 添加成功！")
                 # 保存到文件
                 await write_file("./config/TicketConf.json",TKconf)
@@ -233,12 +234,12 @@ async def ticket_open(b: Bot, e: Event):
     # 判断是否为ticket申请频道的id（文字频道id）
     global TKconf,TKlog
     try:
-        if e.body['target_id'] in TKconf["channel_id"]:
+        if e.body['target_id'] in TKconf["ticket"]["channel_id"]:
             loggingE(e,"TK.OPEN")
             # 1.创建一个以开启ticket用户昵称为名字的文字频道
-            ret1 = await channel_create(e.body['guild_id'],TKconf["category_id"],e.body['user_info']['username'])
+            ret1 = await channel_create(e.body['guild_id'],TKconf["ticket"]["category_id"],e.body['user_info']['username'])
             # 2.先设置管理员角色的权限
-            for rol in TKconf['admin_role']:
+            for rol in TKconf["ticket"]['admin_role']:
                 # 在该频道创建一个角色权限
                 await crole_create(ret1["data"]["id"],"role_id",rol)
                 # 设置该频道的角色权限为可见
@@ -254,7 +255,7 @@ async def ticket_open(b: Bot, e: Event):
 
             # 管理员角色id，修改配置文件中的admin_role部分
             text = f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n"
-            for roles_id in TKconf["admin_role"]:
+            for roles_id in TKconf["ticket"]["admin_role"]:
                 text+=f"(rol){roles_id}(rol) "
             text+="\n"
             # 4.在创建出来的频道发送消息
@@ -293,7 +294,7 @@ async def ticket_open(b: Bot, e: Event):
 async def ticket_close(b: Bot, e: Event):
     try:
         # 避免与tiket申请按钮冲突（文字频道id）
-        if e.body['target_id'] in TKconf["channel_id"]:
+        if e.body['target_id'] in TKconf["ticket"]["channel_id"]:
             print(f"[{GetTime()}] [TK.CLOSE] BTN.CLICK channel_id in TKconf:{e.body['msg_id']}")
             return
 
@@ -391,187 +392,74 @@ async def ticket_msg_log(msg: Message):
         await debug_ch.send(err_str)
         print(err_str)
 
-# 定时保存TKMsgLog
-@bot.task.add_interval(minutes=5)
-async def ticket_msg_log_save():
-    with open("./log/TicketMsgLog.json", 'w', encoding='utf-8') as fw2:
-        json.dump(TKMsgLog, fw2, indent=2, sort_keys=True, ensure_ascii=False)
-    print(f"[TK.MSG.LOG.SAVE] TKMsgLog save at {GetTime()}")
     
 ################################以下是给用户上色功能的内容########################################
 
-# 22.12.12 这部分写的很烂，等待我重写！新的版本在kook-valorant-bot中有
-
-# 设置自动上色event的服务器id和消息id
-Guild_ID = '1573724356603748'
-Msg_ID_1 = '0a4b9403-de0b-494e-b216-3d1dbe957d0f'
-Msg_ID_2 = '5d92f952-15c1-46a4-b370-41a9cf739e50'
-Msg_ID_3 = 'd4dbb164-bd80-469b-9473-8285a9c91e0d'
-
 # 用于记录使用表情回应获取ID颜色的用户
-def save_userid_color(userid:str,d:int,emoji:str):
-    flag=0
-    if d ==1:
-        # 需要先保证原有txt里面没有保存该用户的id，才进行追加
-        with open("./config/idsave_1.txt", 'r',encoding='utf-8') as fr1:
-            lines=fr1.readlines()   
-        #使用r+同时读写（有bug）
-            for line in lines:
-                v = line.strip().split(':')
-                if userid == v[0]:
-                    flag=1 #因为用户已经回复过表情，将flag置为1
-                    fr1.close()
-                    return flag
-        fr1.close()
-        #原有txt内没有该用户信息，进行追加操作
-        if flag==0:
-            fw2 = open("./config/idsave_1.txt",'a+',encoding='utf-8')
-            fw2.write(userid + ':' + emoji + '\n')
-            fw2.close()
-        return flag
+async def save_userid_color(userid:str,emoji:str,uid:str):
+    global ColorIdDict
+    # 如果键值不在，创建键值
+    if uid not in ColorIdDict['data']:
+        ColorIdDict['data'][uid]={}
+    
+    flag = False
+    # 如果用户是第一次添加表情回应，那就写入文件
+    if userid in ColorIdDict['data'][uid].keys():
+        await write_file("./log/ColorID.json",ColorIdDict)
+        flag = True
+    # 不管有没有这个用户，都更新
+    ColorIdDict['data'][uid][userid] = emoji
+    return flag
 
-    elif d == 2:
-        # 需要先保证原有txt里面没有保存该用户的id，才进行追加
-        with open("./config/idsave_2.txt", 'r',encoding='utf-8') as fr1:
-            lines=fr1.readlines()   
-        #使用r+同时读写（有bug）
-            for line in lines:
-                v = line.strip().split(':')
-                if userid == v[0]:
-                    flag=1 #因为用户已经回复过表情，将flag置为1
-                    fr1.close()
-                    return flag
-        fr1.close()
-        #原有txt内没有该用户信息，进行追加操作
-        if flag==0:
-            fw2 = open("./config/idsave_2.txt",'a+',encoding='utf-8')
-            fw2.write(userid + ':' + emoji + '\n')
-            fw2.close()
-        return flag
+# 给用户上角色
+async def Color_GrantRole(bot: Bot, event: Event):
+    g = await bot.client.fetch_guild(Guild_ID)  # 服务器id
+    # 将event.body的msg_id和配置文件中msg_id进行对比，确认是那一条消息的表情回应
+    for euid,econf in TKconf['emoji'].items():
+        if event.body['msg_id'] != econf['msg_id']:
+            continue
+        try:
+            # 这里的打印eventbody的完整内容，包含emoji_id
+            print(f"[{GetTime()}] React:{event.body}")  
+            channel = await bot.client.fetch_public_channel(event.body['channel_id'])  #获取事件频道
+            user = await bot.client.fetch_user(event.body['user_id'])  #通过event获取用户id(对象)
+            # 判断用户回复的emoji是否合法
+            emoji = event.body["emoji"]['id']
+            if emoji in econf['data']:
+                # 判断用户之前是否已经获取过角色
+                ret = await save_userid_color(event.body['user_id'], event.body["emoji"]['id'],euid)  
+                text = f'Bot已经给你上了 {emoji} 对应的颜色啦~'
+                if ret:  # 已经获取过角色
+                    text+="\n上次获取的角色已删除"
+                # 给予角色
+                role = int(econf['data'][emoji])
+                await g.grant_role(user, role)
+                await bot.client.send(channel, text, temp_target_id=event.body['user_id'])
+            else:  # 回复的表情不合法
+                await bot.client.send(channel, f'你回应的表情不在列表中哦~再试一次吧！', temp_target_id=event.body['user_id'])
+        except Exception as result:
+            err_text =f"出现了错误！au:{event.body['user_id']}\n{traceback.format_exc()}"
+            await bot.client.send(channel,err_text,temp_target_id=event.body['user_id'])
+            print(err_text)
 
-    elif d == 3:
-        # 需要先保证原有txt里面没有保存该用户的id，才进行追加
-        with open("./config/idsave_3.txt", 'r',encoding='utf-8') as fr1:
-            lines=fr1.readlines()   
-        #使用r+同时读写（有bug）
-            for line in lines:
-                v = line.strip().split(':')
-                if userid == v[0]:
-                    flag=1 #因为用户已经回复过表情，将flag置为1
-                    fr1.close()
-                    return flag
-        fr1.close()
-        #原有txt内没有该用户信息，进行追加操作
-        if flag==0:
-            fw2 = open("./config/idsave_3.txt",'a+',encoding='utf-8')
-            fw2.write(userid + ':' + emoji + '\n')
-            fw2.close()
-        return flag
-     
-
-# 在不修改代码的前提下设置上色功能的服务器和监听消息
-@bot.command()
-async def Set_GM(msg: Message,d:int,Card_Msg_id:str):
-    logging(msg)
-    global Guild_ID,Msg_ID_1,Msg_ID_2,Msg_ID_3 #需要声明全局变量
-    Guild_ID = msg.ctx.guild.id
-    if d == 1:
-        Msg_ID_1 = Card_Msg_id
-        await msg.reply(f'监听服务器更新为 {Guild_ID}\n监听消息1更新为 {Msg_ID_1}\n')
-    elif d == 2:
-        Msg_ID_2 = Card_Msg_id
-        await msg.reply(f'监听服务器更新为 {Guild_ID}\n监听消息2更新为 {Msg_ID_2}\n')
-    elif d == 3:
-        Msg_ID_3 = Card_Msg_id
-        await msg.reply(f'监听服务器更新为 {Guild_ID}\n监听消息3更新为 {Msg_ID_3}\n')
 
 
 # 判断消息的emoji回应，并给予不同角色
 @bot.on_event(EventTypes.ADDED_REACTION)
-async def grant_roles(b: Bot, event: Event):
-    g = await bot.client.fetch_guild(Guild_ID)# 填入服务器id
-    loggingE(event,"EMOJI.REACT")#事件日志
-
-    channel = await bot.client.fetch_public_channel(event.body['channel_id']) #获取事件频道
-    s = await bot.client.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
-    # 判断用户回复的emoji是否合法
-    emoji=event.body["emoji"]['id']
- 
-    # 第一个消息
-    if event.body['msg_id'] == Msg_ID_1:  #将msg_id和event.body msg_id进行对比，确认是我们要的那一条消息的表情回应
-        flag=0
-        with open("./config/emoji1.txt", 'r',encoding='utf-8') as fr1:
-            lines=fr1.readlines()
-            for line in lines:
-                v = line.strip().split(':')
-                if emoji == v[0]:
-                    flag=1 #确认用户回复的emoji合法 
-                    ret = save_userid_color(event.body['user_id'], 1, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
-                    #ret=0
-                    if ret ==1: #已经获取过角色
-                        await b.send(channel,f'你已经设置过你的`游戏角色`角色，修改请联系管理。',temp_target_id=event.body['user_id'])
-                        fr1.close()
-                        return
-                    else:
-                        role=int(v[1])
-                        await g.grant_role(s,role)
-                        await b.send(channel, f"bot已经给你上了 {event.body['emoji']['name']} 对应的角色",temp_target_id=event.body['user_id'])
-        fr1.close()
-        if flag == 0: #回复的表情不合法
-            await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
-    
-    # 第二个消息
-    elif event.body['msg_id'] == Msg_ID_2:
-        # channel = await bot.client.fetch_public_channel(event.body['channel_id']) #获取事件频道
-        # s = await bot.client.fetch_user(event.body['user_id'])#通过event获取用户id(对象)
-        # # 判断用户回复的emoji是否合法
-        # emoji=event.body["emoji"]['id']
-        flag=0
-        with open("./config/emoji2.txt", 'r',encoding='utf-8') as fr1:
-            lines=fr1.readlines()
-            for line in lines:
-                v = line.strip().split(':')
-                if emoji == v[0]:
-                    flag=1 #确认用户回复的emoji合法 
-                    ret = save_userid_color(event.body['user_id'], 2, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
-                    #ret=0
-                    if ret ==1: #已经获取过角色
-                        await b.send(channel,f'你已经设置过你的`休闲游戏`角色，修改请联系管理。',temp_target_id=event.body['user_id'])
-                        fr1.close()
-                        return
-                    else:
-                        role=int(v[1])
-                        await g.grant_role(s,role)
-                        await b.send(channel, f"bot已经给你上了 {event.body['emoji']['name']} 对应的角色",temp_target_id=event.body['user_id'])
-        fr1.close()
-        if flag == 0: #回复的表情不合法
-            await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
-    
-    # 第三个消息
-    elif event.body['msg_id'] == Msg_ID_3:
-        flag=0
-        with open("./config/emoji3.txt", 'r',encoding='utf-8') as fr1:
-            lines=fr1.readlines()
-            for line in lines:
-                v = line.strip().split(':')
-                if emoji == v[0]:
-                    flag=1 #确认用户回复的emoji合法 
-                    ret = save_userid_color(event.body['user_id'], 3, event.body["emoji"]['id'])# 判断用户之前是否已经获取过角色
-                    #ret=0
-                    if ret ==1: #已经获取过角色
-                        await b.send(channel,f'你已经设置过你的`社会身份`角色，修改请联系管理。',temp_target_id=event.body['user_id'])
-                        fr1.close()
-                        return
-                    else:
-                        role=int(v[1])
-                        await g.grant_role(s,role)
-                        await b.send(channel, f"bot已经给你上了 {event.body['emoji']['name']} 对应的角色",temp_target_id=event.body['user_id'])
-        fr1.close()
-        if flag == 0: #回复的表情不合法
-            await b.send(channel,f'你回应的表情不在列表中哦~再试一次吧！',temp_target_id=event.body['user_id'])
+async def Grant_Roles(b: Bot, event: Event):
+    await Color_GrantRole(b, event)
+    # 如果想获取emoji的样式，比如频道自定义emoji，就需要在这里print
+    # print(event.body) 
 
 
 ###################################################################################################################################
+
+# 定时保存log file
+@bot.task.add_interval(minutes=5)
+async def log_file_save():
+    await write_file("./log/TicketMsgLog.json",TKMsgLog)
+    await write_file("./log/ColorID.json",ColorIdDict)
+    print(f"[FILE.SAVE] file save at {GetTime()}")
 
 # 开机的时候打印一次时间，记录重启时间
 print(f"Start at: [%s]" % start_time)
@@ -580,8 +468,8 @@ print(f"Start at: [%s]" % start_time)
 async def loading_channel_cookie():
     try:
         global debug_ch, log_ch
-        debug_ch = await bot.client.fetch_public_channel(TKconf['debug_channel'])
-        log_ch = await bot.client.fetch_public_channel(TKconf['log_channel'])
+        debug_ch = await bot.client.fetch_public_channel(TKconf["ticket"]['debug_channel'])
+        log_ch = await bot.client.fetch_public_channel(TKconf["ticket"]['log_channel'])
         print("[BOT.START] fetch_public_channel success")
     except:
         print("[BOT.START] fetch_public_channel failed")

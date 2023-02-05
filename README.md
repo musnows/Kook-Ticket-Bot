@@ -1,6 +1,6 @@
 # Kook-Ticket-Bot
 
-![commit](https://img.shields.io/github/last-commit/Aewait/Valorant-kaiheila-bot) ![release](https://img.shields.io/github/v/release/Aewait/Valorant-kaiheila-bot)
+![commit](https://img.shields.io/github/last-commit/musnows/Kook-Ticket-Bot) ![release](https://img.shields.io/github/v/release/musnows/Kook-Ticket-Bot)
 
 
 A ticket bot for KOOK, **自托管**表单/工单系统机器人

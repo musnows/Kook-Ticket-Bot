@@ -1,14 +1,43 @@
 # Kook-Ticket-Bot
-A ticket bot for KOOK 表单系统机器人
+
+![commit](https://img.shields.io/github/last-commit/Aewait/Valorant-kaiheila-bot) ![release](https://img.shields.io/github/v/release/Aewait/Valorant-kaiheila-bot)
+
+
+A ticket bot for KOOK, **自托管**表单/工单系统机器人
 
 工作流程
 * 当用户B点击卡片消息的按钮后，创建一个只有用户B可见的文字频道
 * Bot会自动在该临时频道发送一条消息，并`@用户B` 和处理表单的 `@管理员`
 * 当处理完毕后，点击`关闭`按钮，Bot会删除该文字频道
+* 文字频道删除后，Bot会给预先`设置好的log频道`和`开启ticket的用户`发送一条记录信息，并在服务器后端保存该ticket的聊天记录；
+* 管理员可以使用`/tkcm`命令，指定ticket编号对该工单发表评论
 
 附加功能
 * 通过表情回应给用户添加对应角色
-* 设置bot动态 `游戏/音乐`
+* 设置Bot动态 `游戏/音乐`
+
+本README尽量详细，争取让没有写过python代码，但了解基本编程环境搭建的用户能配置成功并正常使用bot！
+
+如果您对本README还有完善的建议，十分欢迎您[加入KOOK帮助频道](https://kook.top/gpbTwZ)与我联系，亦或者在仓库提出issue
+
+## help command
+
+Bot的帮助命令为 `/tkhelp`，`@Bot`也能触发帮助命令
+
+```python
+# help命令的内容
+def help_text():
+    text = "ticket-bot的命令操作\n"
+    text+=f"`/ticket` 在本频道发送一条消息，作为ticket的开启按钮\n"
+    text+=f"`/tkcm 工单id 备注` 对某一条已经关闭的工单进行备注\n"
+    text+=f"`/aar 角色id` 将角色id添加进入管理员角色\n"
+    text+=f"```\nid获取办法：kook设置-高级设置-打开开发者模式；右键用户头像即可复制用户id，右键频道/分组即可复制id，角色id需要进入服务器管理面板的角色页面中右键复制\n```\n"
+    text+=f"以上命令都需要管理员才能操作\n"
+    text+=f"`/gaming 游戏选项` 让机器人开始打游戏(代码中指定了几个游戏)\n"
+    text+=f"`/singing 歌名 歌手` 让机器人开始听歌\n"
+    text+=f"`/sleeping 1(2)` 让机器人停止打游戏1 or 听歌2\n"
+    return text
+```
 
 ## Requerments
 

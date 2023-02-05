@@ -2,11 +2,11 @@ import json
 import aiohttp
 from typing import Union
 from khl import  Bot,Message,ChannelPrivacyTypes
-from utils import config
+from utils import Botconf
 
 # kook api的头链接，请不要修改
 kook_base="https://www.kookapp.cn"
-kook_headers={f'Authorization': f"Bot {config['token']}"}
+kook_headers={f'Authorization': f"Bot {Botconf['token']}"}
 
 
 # 让机器人开始打游戏

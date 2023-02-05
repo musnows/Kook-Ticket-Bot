@@ -10,10 +10,10 @@ from khl import Bot, Message, EventTypes, Event,Client,PublicChannel
 from khl.card import CardMessage, Card, Module, Element, Types
 from khl.command import Rule
 from KookApi import *
-from utils import config,TKconf,EMconf,logging,loggingE,help_text,GetTime
+from utils import Botconf,TKconf,EMconf,TKMsgLog,TKlog,logging,loggingE,help_text,GetTime
 
 # config是在utils.py中读取的，直接import就能使用
-bot = Bot(token=config['token'])
+bot = Bot(token=Botconf['token'])
 
 debug_ch = PublicChannel # bug    日志频道
 log_ch = PublicChannel   # tikcet 日志频道
@@ -102,18 +102,6 @@ async def sleeping(msg: Message,d:int=0,*arg):
         print(err_str)
 
 ################################以下是给ticket功能的内容########################################
-
-# 从文件中读取频道和分组id
-with open('./config/TicketConf.json', 'r', encoding='utf-8') as f1:
-    TKconf = json.load(f1)
-
-# 从文件中读取历史ticket记录
-with open('./log/TicketLog.json', 'r', encoding='utf-8') as f2:
-    TKlog = json.load(f2)
-
-# 从文件中读取历史ticket msg记录
-with open('./log/TicketMsgLog.json', 'r', encoding='utf-8') as f2:
-    TKMsgLog = json.load(f2)
 
 # 判断用户是否在管理员身份组里面
 async def user_in_admin_role(guild_id:str,user_id:str):

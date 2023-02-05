@@ -45,6 +45,10 @@ def help_text():
 ###############################################################################################
 
 # 预先加载配置文件
-config = open_file('config/config.json')       # 机器人配置文件
-TKconf = open_file('config/TicketConf.json')   # 工单配置文件
-EMconf = open_file('config/EmojiConf.json')    # 表情角色配置文件
+config = open_file('config/config.json')
+Botconf = config['bot']     # 机器人配置文件
+TKconf = config['ticket']   # 工单配置文件
+EMconf = config['emoji']    # 表情角色配置文件
+
+TKlog = open_file('./log/TicketLog.json')      # ticket 历史记录
+TKMsgLog = open_file('./log/TicketMsgLog.json')# ticket 消息记录

@@ -175,9 +175,17 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
     }
   }
 ```
-随后要做的是，在`data`里面添加emoji和角色id的对照表，示例如下
+随后要做的是，在`data`里面添加emoji和角色id的对照表
 
-> 角色ID获取：设置内开启开发者模式后，进入服务器后台，右键角色复制id
+> 角色ID获取：设置内开启开发者模式后，进入服务器后台，右键角色复制id；
+>
+> 表情ID获取：
+> * 在客户端内，选中表情后`ctrl+c`，即可复制出表情id
+> * 在bot的代码中，打印[add_reaction的event消息](https://github.com/musnows/Kook-Ticket-Bot/blob/296f3bf477b8d5530934464fc7f8489d18c65379/code/main.py#L447-L452)获取表情id
+
+<img src="./screenshots/emoji_id.png" wight="250px" height="160px" alt="复制表情id">
+
+配置示例如下，左侧为表情，右侧为这个表情对应的角色id
 
 ```json
   "emoji": {
@@ -225,9 +233,9 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 bot会根据`emoji_id`给用户上对应的角色
 
-<img src="./screenshots/role2.png" wight="250px" height="160px">
+<img src="./screenshots/role2.png" wight="250px" height="160px" alt="上角色的消息">
 
-<img src="./screenshots/role1.png" wight="350px" height="210px">
+<img src="./screenshots/role1.png" wight="350px" height="210px" alt="bot上角色">
 
 
 

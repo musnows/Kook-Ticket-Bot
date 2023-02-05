@@ -6,35 +6,22 @@ import time
 import traceback
 import os
 
-from khl import Bot, Message, EventTypes, Event,Client,PublicMessage
-from khl.card import CardMessage, Card, Module, Element, Types, Struct
+from khl import Bot, Message, EventTypes, Event,Client,PublicChannel
+from khl.card import CardMessage, Card, Module, Element, Types
 from khl.command import Rule
-from endpoints import *
+from KookApi import *
+from utils import config,TKconf,EMconf,logging,loggingE,help_text,GetTime
 
-# 新建机器人，token 就是机器人的身份凭证
-with open('./config/config.json', 'r', encoding='utf-8') as f:
-    config = json.load(f)
-# 用读取来的 config 初始化 bot，字段对应即可
+# config是在utils.py中读取的，直接import就能使用
 bot = Bot(token=config['token'])
 
-debug_ch = None #bug 修复频道
-log_ch = None #tikcet log频道
-
-#将获取当前时间封装成函数方便使用
-def GetTime():  
-    return time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
+debug_ch = PublicChannel # bug    日志频道
+log_ch = PublicChannel   # tikcet 日志频道
 
 #记录开机时间
 start_time = GetTime()
 
-# 在控制台打印msg内容，用作日志
-def logging(msg: Message):
-    now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
-    print(f"[{now_time}] G:{msg.ctx.guild.id} - C:{msg.ctx.channel.id} - Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - content:{msg.content}")
-
-def loggingE(e: Event,func=""):
-    now_time = time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
-    print(f"[{now_time}] {func} Event:{e.body}")
+####################################################################################
 
 # `/hello`指令，一般用于测试bot是否成功上线
 @bot.command(name='hello')
@@ -42,19 +29,8 @@ async def world(msg: Message):
     logging(msg)
     await msg.reply('world!')
 
-def help_text():
-    text = "ticket-bot的命令操作\n"
-    text+=f"`/ticket` 在本频道发送一条消息，作为ticket的开启按钮\n"
-    text+=f"`/tkcm 工单id 备注` 对某一条已经关闭的工单进行备注\n"
-    text+=f"`/aar 角色id` 将角色id添加进入管理员角色\n"
-    text+=f"```\nid获取办法：kook设置-高级设置-打开开发者模式；右键用户头像即可复制用户id，右键频道/分组即可复制id，角色id需要进入服务器管理面板的角色页面中右键复制\n```\n"
-    text+=f"以上命令都需要管理员才能操作\n"
-    text+=f"`/gaming 游戏选项` 让机器人开始打游戏(代码中指定了几个游戏)\n"
-    text+=f"`/singing 歌名 歌手` 让机器人开始听歌\n"
-    text+=f"`/sleeping 1(2)` 让机器人停止打游戏1 or 听歌2\n"
-    return text
-
-@bot.command(name='TKhelp')
+# TKhelp帮助命令
+@bot.command(name='TKhelp',aliases=['tkhelp','thelp'])
 async def help(msg: Message):
     logging(msg)
     text = help_text()
@@ -343,7 +319,7 @@ async def ticket_close(b: Bot, e: Event):
         url2=kook_base+'/api/v3/channel/delete'
         params2 = {"channel_id": e.body['target_id']}
         async with aiohttp.ClientSession() as session:
-            async with session.post(url2, data=params2,headers=headers) as response:
+            async with session.post(url2, data=params2,headers=kook_headers) as response:
                 ret2=json.loads(await response.text())
         print(f"[{GetTime()}] [TK.CLOSE] delete channel {e.body['target_id']}")
 

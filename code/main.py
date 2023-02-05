@@ -588,10 +588,11 @@ async def loading_channel_cookie():
         global debug_ch, log_ch
         debug_ch = await bot.client.fetch_public_channel(TKconf['debug_channel'])
         log_ch = await bot.client.fetch_public_channel(TKconf['log_channel'])
-        print("[BOT.TASK] fetch_public_channel success")
+        print("[BOT.START] fetch_public_channel success")
     except:
-        print("[BOT.TASK] fetch_public_channel failed")
+        print("[BOT.START] fetch_public_channel failed")
         print(traceback.format_exc())
+        print("[BOT.START] 获取频道失败，请检查config文件中的debug_channel和log_channel")
         os._exit(-1)  #出现错误直接退出程序
 
 # 凭证传好了、机器人新建好了、指令也注册完了

@@ -244,7 +244,7 @@ async def ticket_open(b: Bot, e: Event):
                 await crole_create(ret1["data"]["id"],"role_id",rol)
                 # 设置该频道的角色权限为可见
                 await crole_update(ret1["data"]["id"],"role_id",rol,2048)
-                asyncio.sleep(0.2)# 休息一会 避免超速
+                await asyncio.sleep(0.2)# 休息一会 避免超速
                 
 
             # 3.设置该频道的用户权限（开启tk的用户）

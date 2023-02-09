@@ -9,7 +9,7 @@ import os
 from khl import Bot, Message, EventTypes, Event,Client,PublicChannel
 from khl.card import CardMessage, Card, Module, Element, Types
 from khl.command import Rule
-from KookApi import *
+from kookApi import *
 from utils import Botconf,TKconf,TKMsgLog,TKlog,ColorIdDict,logging,loggingE,help_text,GetTime,write_file
 
 # config是在utils.py中读取的，直接import就能使用
@@ -37,12 +37,12 @@ async def help(msg: Message):
     text = help_text()
     await msg.reply(text)
 
-#有人at机器人的时候也发送帮助命令
-@bot.command(regex=r'(.+)', rules=[Rule.is_bot_mentioned(bot)])
-async def atBOT(msg: Message, mention_str: str):
-    logging(msg)
-    text = help_text()
-    await msg.reply(text)
+# #有人at机器人的时候也发送帮助命令
+# @bot.command(regex=r'(.+)', rules=[Rule.is_bot_mentioned(bot)])
+# async def atBOT(msg: Message, mention_str: str):
+#     logging(msg)
+#     text = help_text()
+#     await msg.reply(text)
     
 #####################################机器人动态#########################################
 
@@ -477,6 +477,10 @@ async def loading_channel_cookie():
         print("[BOT.START] 获取频道失败，请检查config文件中的debug_channel和log_channel")
         os._exit(-1)  #出现错误直接退出程序
 
-# 凭证传好了、机器人新建好了、指令也注册完了
-# 接下来就是运行我们的机器人了，bot.run() 就是机器人的起跑线
+# 以下代码仅供replit部署使用
+# from keepal import keep_alive
+# keep_alive() # 运行Flask
+# 以上代码仅供replit部署使用
+
+# 开始运行bot
 bot.run()

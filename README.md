@@ -18,6 +18,8 @@ A ticket bot for KOOK, **自托管**表单/工单系统机器人
 
 本README尽量详细，争取让没有写过python代码，但了解基本编程环境搭建的用户能配置成功并正常使用bot！
 
+> 无须服务器和环境搭建，在replit上部署本bot！[教程](https://blog.musnow.top/2023/02/09/note_python/9%E7%99%BD%E5%AB%96replist%E9%83%A8%E7%BD%B2ticket%E6%9C%BA%E5%99%A8%E4%BA%BA/)
+
 如果您对本README还有完善的建议，十分欢迎您[加入KOOK帮助频道](https://kook.top/gpbTwZ)与我联系，亦或者在仓库提出issue
 
 ## help command
@@ -193,7 +195,7 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 这个功能的作用是根据一条消息的表情回应，给用户上对应的角色。类似于YY里的上马甲。
 
-要想使用本功能，请在 `code/TicketConf.json` 里面追加如下字段
+要想使用本功能，请创建 `code/log/ColorID.json`文件（初始化为`{}`），并在 `code/TicketConf.json` 里面追加如下字段
 
 ```json
   "emoji": {

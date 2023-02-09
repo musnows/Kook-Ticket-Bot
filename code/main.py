@@ -347,8 +347,18 @@ async def ticket_close(b: Bot, e: Event):
         text+= f"关闭用户: (met){TKlog['data'][no]['end_usr']}(met)\n"
         c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
         cm.append(c)
-        open_usr = await bot.client.fetch_user(TKlog['data'][no]['usr_id'])
-        log_usr_sent = await open_usr.send(cm) #发送给用户
+        # 预先定义，避免出现私信错误
+        log_ch_sent = {'msg_id':'none'}
+        log_usr_sent = {'msg_id':'none'}
+        try:
+            open_usr = await bot.client.fetch_user(TKlog['data'][no]['usr_id'])
+            log_usr_sent = await open_usr.send(cm) #发送给用户
+        except Exception as result:
+            if '无法' in str(traceback.format_exc()):
+                print(f"ERR! [{GetTime()}] tk close Au:{TKlog['data'][no]['usr_id']}\n无法向用户发起私信")
+            else:
+                raise result
+
         log_ch_sent = await log_ch.send(cm) #发送到频道
         TKlog['data'][no]['log_ch_msg_id'] = log_ch_sent['msg_id']
         TKlog['data'][no]['log_usr_msg_id'] = log_usr_sent['msg_id']
@@ -358,7 +368,7 @@ async def ticket_close(b: Bot, e: Event):
         await write_file("./log/TicketLog.json",TKlog)
         print(f"[{GetTime()}] [TK.CLOSE] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}")
     except:
-        err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        err_str = f"ERR! [{GetTime()}] tk close\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
         print(err_str)
 

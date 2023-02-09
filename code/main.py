@@ -5,6 +5,7 @@ import aiohttp
 import time
 import traceback
 import os
+import sys
 
 from khl import Bot, Message, EventTypes, Event,Client,PublicChannel
 from khl.card import CardMessage, Card, Module, Element, Types
@@ -21,6 +22,11 @@ Guild_ID = TKconf['guild_id'] # 服务器id
 
 #记录开机时间
 start_time = GetTime()
+
+# #标准输出重定向至文件
+# file =  open('./log/log.txt', 'a')
+# sys.stdout = file 
+# sys.stderr = file
 
 ####################################################################################
 
@@ -462,7 +468,7 @@ async def Grant_Roles(b: Bot, event: Event):
     # print(event.body) 
 
 
-###################################################################################################################################
+##########################################################################################
 
 # 定时保存log file
 @bot.task.add_interval(minutes=5)
@@ -470,6 +476,24 @@ async def log_file_save():
     await write_file("./log/TicketMsgLog.json",TKMsgLog)
     await write_file("./log/ColorID.json",ColorIdDict)
     print(f"[FILE.SAVE] file save at {GetTime()}")
+    sys.stdout.flush() #刷新缓冲区
+    sys.stderr.flush() # 刷新缓冲区
+
+# kill命令安全退出
+@bot.command()
+async def kill(msg:Message,*arg):
+    logging(msg)
+    if not (await user_in_admin_role(msg.ctx.guild.id,msg.author_id)):
+        await msg.reply(f"您没有权限执行本命令！")
+        return
+    
+    # 发送信息提示
+    await msg.reply(f"bot exit")
+    res = await bot_offline() # 调用接口下线bot
+    print(f"[KILL] [{GetTime()}] bot-off: {res}\n") # 打印下线日志
+    sys.stdout.flush() # 刷新缓冲区
+    sys.stderr.flush() # 刷新缓冲区
+    os._exit(0) # 进程退出
 
 # 开机的时候打印一次时间，记录重启时间
 print(f"Start at: [%s]" % start_time)

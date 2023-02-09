@@ -101,3 +101,11 @@ async def crole_update(channel_id:str,_type:str,_value:str,_allow:int):
                 ret3=json.loads(await response.text())
                 #print(f"ret3: {ret3}")
     return ret3
+
+# 下线机器人
+async def bot_offline():
+    url = kook_base + "/api/v3/user/offline"
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, headers=kook_headers) as response:
+            res = json.loads(await response.text())
+    return res

@@ -1,5 +1,6 @@
 import json
 import time
+import sys
 import aiofiles
 from khl import Message,Event
 
@@ -25,9 +26,12 @@ async def write_file(path: str, value,ifAio=False):
 # 打印msg内容，用作日志
 def logging(msg: Message):
     print(f"[{GetTime()}] G:{msg.ctx.guild.id} - C:{msg.ctx.channel.id} - Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - content:{msg.content}")
+    sys.stdout.flush() #刷新缓冲区
+
 # 打印event的日志
 def loggingE(e: Event,func=""):
     print(f"[{GetTime()}] {func} Event:{e.body}")
+    sys.stdout.flush() #刷新缓冲区
 
 # help命令的内容
 def help_text():

@@ -9,9 +9,8 @@ import sys
 
 from khl import Bot, Message, EventTypes, Event,Client,PublicChannel
 from khl.card import CardMessage, Card, Module, Element, Types
-from khl.command import Rule
 from kookApi import *
-from utils import Botconf,TKconf,TKMsgLog,TKlog,ColorIdDict,logging,loggingE,help_text,GetTime,write_file
+from utils import *
 
 # config是在utils.py中读取的，直接import就能使用
 bot = Bot(token=Botconf['token'])
@@ -23,10 +22,8 @@ Guild_ID = TKconf['guild_id'] # 服务器id
 #记录开机时间
 start_time = GetTime()
 
-# #标准输出重定向至文件
-# file =  open('./log/log.txt', 'a')
-# sys.stdout = file 
-# sys.stderr = file
+# 标准输出重定向至文件
+# logDup('./log/log.txt')
 
 ####################################################################################
 
@@ -44,6 +41,7 @@ async def help(msg: Message):
     await msg.reply(text)
 
 # #有人at机器人的时候也发送帮助命令
+# from khl.command import Rule
 # @bot.command(regex=r'(.+)', rules=[Rule.is_bot_mentioned(bot)])
 # async def atBOT(msg: Message, mention_str: str):
 #     logging(msg)
@@ -476,8 +474,7 @@ async def log_file_save():
     await write_file("./log/TicketMsgLog.json",TKMsgLog)
     await write_file("./log/ColorID.json",ColorIdDict)
     print(f"[FILE.SAVE] file save at {GetTime()}")
-    sys.stdout.flush() #刷新缓冲区
-    sys.stderr.flush() # 刷新缓冲区
+    logFlush() # 刷新缓冲区
 
 # kill命令安全退出
 @bot.command()
@@ -491,8 +488,7 @@ async def kill(msg:Message,*arg):
     await msg.reply(f"bot exit")
     res = await bot_offline() # 调用接口下线bot
     print(f"[KILL] [{GetTime()}] bot-off: {res}\n") # 打印下线日志
-    sys.stdout.flush() # 刷新缓冲区
-    sys.stderr.flush() # 刷新缓冲区
+    logFlush() # 刷新缓冲区
     os._exit(0) # 进程退出
 
 # 开机的时候打印一次时间，记录重启时间
@@ -505,10 +501,12 @@ async def loading_channel_cookie():
         debug_ch = await bot.client.fetch_public_channel(TKconf["ticket"]['debug_channel'])
         log_ch = await bot.client.fetch_public_channel(TKconf["ticket"]['log_channel'])
         print("[BOT.START] fetch_public_channel success")
+        logFlush() # 刷新缓冲区
     except:
         print("[BOT.START] fetch_public_channel failed")
         print(traceback.format_exc())
         print("[BOT.START] 获取频道失败，请检查config文件中的debug_channel和log_channel")
+        logFlush() # 刷新缓冲区
         os._exit(-1)  #出现错误直接退出程序
 
 # 以下代码仅供replit部署使用

@@ -23,15 +23,25 @@ async def write_file(path: str, value,ifAio=False):
             json.dump(value, fw2, indent=2, sort_keys=True, ensure_ascii=False)
 
 
+# 设置日志文件的重定向
+def logDup(path:str='./log/log.txt'):
+    file =  open(path, 'a')
+    sys.stdout = file 
+    sys.stderr = file
+# 刷新缓冲区
+def logFlush():
+    sys.stdout.flush() # 刷新缓冲区
+    sys.stderr.flush() # 刷新缓冲区
+
 # 打印msg内容，用作日志
 def logging(msg: Message):
     print(f"[{GetTime()}] G:{msg.ctx.guild.id} - C:{msg.ctx.channel.id} - Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - content:{msg.content}")
-    sys.stdout.flush() #刷新缓冲区
+    logFlush() # 刷新缓冲区 
 
 # 打印event的日志
 def loggingE(e: Event,func=""):
     print(f"[{GetTime()}] {func} Event:{e.body}")
-    sys.stdout.flush() #刷新缓冲区
+    logFlush() # 刷新缓冲区
 
 # help命令的内容
 def help_text():

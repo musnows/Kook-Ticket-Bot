@@ -195,7 +195,15 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 这个功能的作用是根据一条消息的表情回应，给用户上对应的角色。类似于YY里的上马甲。
 
-要想使用本功能，请创建 `code/log/ColorID.json`文件（初始化为`{}`），并在 `code/TicketConf.json` 里面追加如下字段
+要想使用本功能，请创建 `code/log/ColorID.json`文件，复制如下内容到其中
+
+```json
+{
+    "data":{}   
+}
+```
+
+并在 `code/TicketConf.json` 里面追加如下字段
 
 ```json
   "emoji": {

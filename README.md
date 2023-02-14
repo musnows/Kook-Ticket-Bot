@@ -197,6 +197,10 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 这个功能的作用是根据一条消息的表情回应，给用户上对应的角色。类似于YY里的上马甲。
 
+请确认您的bot角色拥有管理员权限，并处于其需要给予的角色之上。如图，TestBot只能给其他用户上在他下面的角色，否则Api会报错 `无权限`
+
+<img src="./screenshots/emoji_role_rules.png" alt="emoji_role_rules">
+
 要想使用本功能，请创建 `code/log/ColorID.json`文件，复制如下内容到其中
 
 ```json

@@ -461,7 +461,9 @@ async def Color_GrantRole(bot: Bot, event: Event):
 # 判断消息的emoji回应，并给予不同角色
 @bot.on_event(EventTypes.ADDED_REACTION)
 async def Grant_Roles(b: Bot, event: Event):
-    await Color_GrantRole(b, event)
+    # 只有emoji的键值在配置文件中存在，才启用监看
+    if 'emoji' in TKconf:
+        await Color_GrantRole(b, event)
     # 如果想获取emoji的样式，比如频道自定义emoji，就需要在这里print
     # print(event.body) 
 
@@ -492,7 +494,7 @@ async def kill(msg:Message,*arg):
     os._exit(0) # 进程退出
 
 # 开机的时候打印一次时间，记录重启时间
-print(f"Start at: [%s]" % start_time)
+print(f"[BOT.START] Start at: [%s]" % start_time)
 
 @bot.task.add_date()
 async def loading_channel_cookie():

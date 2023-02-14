@@ -1,7 +1,8 @@
 import json
 import time
+import os
 import sys
-import aiofiles
+import traceback
 from khl import Message,Event
 
 #将获取当前时间封装成函数方便使用
@@ -14,13 +15,9 @@ def open_file(path):
         tmp = json.load(f)
     return tmp
 # 写入文件
-async def write_file(path: str, value,ifAio=False):
-    if ifAio:
-        async with aiofiles.open(path, 'w+', encoding='utf-8') as f:
-            await f.write(json.dumps(value, indent=2, sort_keys=True, ensure_ascii=False))
-    else:
-        with open(path, 'w+', encoding='utf-8') as fw2:
-            json.dump(value, fw2, indent=2, sort_keys=True, ensure_ascii=False)
+async def write_file(path: str, value):
+    with open(path, 'w+', encoding='utf-8') as fw2:
+        json.dump(value, fw2, indent=2, sort_keys=True, ensure_ascii=False)
 
 
 # 设置日志文件的重定向
@@ -56,13 +53,52 @@ def help_text():
     text+=f"`/sleeping 1(2)` 让机器人停止打游戏1 or 听歌2\n"
     return text
 
+# 创建根文件
+def create_logFile(path:str,content):
+    """Retrun value
+    - False: path exist but keyerr / create false
+    - True: path exist / path not exist, create success
+    """
+    try:
+        # 如果文件路径存在
+        if os.path.exists(path):
+            tmp = open_file(path) # 打开文件
+            for key in content: # 遍历默认的键值
+                if key not in tmp: # 判断是否存在
+                    print(f"[create_logFile] ERR! files exists, but key '{key}' not in {path} files!")
+                    return False
+            return True
+        # 文件路径不存在，通过content写入path
+        write_file(path,content)
+        return True
+    except Exception as result:
+        print(f"[create_logFile] ERR!\n{traceback.format_exc()}")
+        return False
+
 ###############################################################################################
 
 Botconf = open_file('config/config.json')      # 机器人配置文件
 TKconf = open_file('config/TicketConf.json')   # 工单配置文件/表情角色配置文件
 
-TKlog = open_file('./log/TicketLog.json')      # ticket 历史记录
-TKMsgLog = open_file('./log/TicketMsgLog.json')# ticket 消息记录
+# 日志文件路径
+TKlogPath = './log/TicketLog.json'
+TKMsgLogPath = './log/TicketMsgLog.json'
+ColorIdPath = './log/ColorID.json'
+
+# 自动创建TicketLog和TicketMsgLog日志文件
+if(not create_logFile(TKlogPath,{"TKnum": 0,"data": {},"msg_pair": {},"TKchannel": {}})):
+    os._exit(-1) # err,退出进程    
+if(not create_logFile(TKMsgLogPath,{"TKMsgChannel": {},"data": {}})):
+    os._exit(-1) # err,退出进程    
+
+# 创建日志文件成功，打开
+TKlog = open_file(TKlogPath) # ticket 历史记录
+TKMsgLog = open_file(TKMsgLogPath)# ticket 消息记录
+
 # EMOJI键值存在才会加载
 if 'emoji' in TKconf:
-    ColorIdDict = open_file('./log/ColorID.json')  # 记录用户在某个消息下获取的角色
+    # 自动创建ColorID日志文件
+    if(not create_logFile(ColorIdPath,{"data":{}})): 
+        os._exit(-1)# err,退出进程
+    # 没有错误，打开文件
+    ColorIdDict = open_file(ColorIdPath)  # 记录用户在某个消息下获取的角色

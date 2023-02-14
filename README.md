@@ -63,7 +63,9 @@ nohup python -u main.py >> ./log/bot.log 2>&1 &
 
 ## Config
 
-因为bot开机的时候就会打开下面的文件，若缺少字段，会影响bot的正常运行
+因为bot开机的时候就会打开下面的文件，若缺少字段，会影响bot的正常运行；
+
+目前在 [code/utils.py](./code/utils.py) 的底部打开了所有的配置文件，并添加了 `create_logFile()` 函数来自动创建不存在的配置文件，以下README中对配置文件的示例仅供参考，若运行后出现了自动创建文件失败的报错，请采用REAMDE中的描述手动创建配置文件！
 
 ### 1.bot token
 在 `code/config`路径中添加`config.json`，并在里面填入以下内容来初始化你的Bot

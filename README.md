@@ -30,7 +30,7 @@ Bot的帮助命令为 `/tkhelp`
 
 ## Requerments
 
-使用本机器人之前，请先确认您的python版本高于`3.7`, 安装以下依赖项
+使用本机器人之前，请先确认您的python版本高于`3.9`, 安装以下依赖项
 
 ```
 pip install -r reqiurements.txt
@@ -97,6 +97,7 @@ replit-url/khl-wh
 {
   "guild_id":"ticket bot 所服务的服务器id",
   "ticket": {
+    "master_id":"管理员用户id",
     "admin_role": [
       "管理员角色id 1",
       "管理员角色id 2"
@@ -130,11 +131,13 @@ ticket机器人需要您创建一个对全体成员不可见的隐藏分组，�
 
 只有拥有`admin_role`中角色的用户才能操作bot的管理命令。
 
-举例：服务器有个`摸鱼`角色，如果你想让**张三**可以操作bot的管理命令，那就需要给**张三**添加上`摸鱼`角色，并进入服务器的设置-角色管理-右键`摸鱼`角色，复制角色id，并把这个id添加到`"admin_role"`中
+举例：服务器有个`摸鱼`角色，如果你想让**张三**可以操作bot的管理命令，那就需要给**张三**添加上`摸鱼`角色，并进入服务器的设置-角色管理-右键`摸鱼`角色，复制角色id，并把这个id添加到`"admin_role"`中。
+
+注意：`/aar` 命令设置的单频道管理员无法执行ticket命令
 
 <img src="./screenshots/role_id.png" wight="300px" height="200px" alt="角色id获取">
 
-假设`摸鱼`的角色id为114514，那么添加了之后的`TicketConf.json`配置文件应该如下
+假设`摸鱼`的角色id为114514，那么添加了之后的 `TicketConf.json` 配置文件应该如下
 
 ```json
 {
@@ -305,7 +308,38 @@ bot会根据`emoji_id`给用户上对应的角色
 
 <img src="./screenshots/role1.png" wight="350px" height="210px" alt="bot上角色">
 
+### gaming/singing
 
+这两个命令都是用于控制机器人在玩状态的。其中机器人的游戏状态已经写死了几个游戏。
+
+使用如下代码，你可以创建一个你自己想要的游戏
+
+```python
+import requests
+
+url = "https://www.kookapp.cn/api/v3/game/create"
+botoken = "机器人websocket token"
+headers={f'Authorization': f"Bot {botoken}"}
+params ={
+    "name":"游戏名",
+    "icon":"游戏图标的url（可以将图片上传到kook后，点开大图，在右下角...处复制url"
+}
+ret = requests.post(url,params=params)
+print(ret)
+print(ret.text)
+```
+
+在最后的输出结果中，会包含游戏的id。关于此api字段的解释见[官方文档](https://developer.kookapp.cn/doc/http/game#%E6%B7%BB%E5%8A%A0%E6%B8%B8%E6%88%8F)
+
+假设新增的游戏id为12345，那么就需要在gaming所在函数中，添加如下代码
+
+~~~python
+  if game == 10: # 自己设定一个执行命令时需要的编号    
+      ret = await status_active_game(12345) # xxx游戏的id
+      await msg.reply(f"{ret['message']}，Bot上号xxx游戏啦！")
+~~~
+
+kook的在玩状态同步及其缓慢，请耐心等待。
 
 ## The end
 有任何问题，请添加`issue`，或加入我的交流服务器与我联系 [kook邀请链接](https://kook.top/gpbTwZ)

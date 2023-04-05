@@ -155,54 +155,54 @@ async def ticket_commit(msg: Message,tkno:str,*args):
         return
     try:
         global TKconf,TKlog
-        if (await user_in_admin_role(msg.ctx.guild.id,msg.author_id)):
-            if tkno not in TKlog['data']:
-                await msg.reply("您输入的ticket编号未在数据库中！")
-                return
+        if not (await user_in_admin_role(msg.ctx.guild.id,msg.author_id)):
+            return await msg.reply(f"您没有权限执行本命令！")
+        if tkno not in TKlog['data']:
+            return await msg.reply("您输入的ticket编号未在数据库中！")
+        if 'log_ch_msg_id' not in TKlog['data'][tkno]:# 工单还没有结束
+            return await msg.reply("需要工单结束后，才能对其评论。")
             
-            cmt = ' '.join(args) #备注信息
-            TKlog['data'][tkno]['cmt'] = cmt
-            TKlog['data'][tkno]['cmt_usr'] = msg.author_id
-            cm = CardMessage()
-            c = Card(Module.Header(f"工单 ticket.{tkno} 已备注"),Module.Context(f"信息更新于 {GetTime()}"),Module.Divider())
-            text = f"开启时间: {TKlog['data'][tkno]['start_time']}\n"
-            text+= f"发起用户: (met){TKlog['data'][tkno]['usr_id']}(met)\n"
-            text+= f"结束时间: {TKlog['data'][tkno]['end_time']}\n"
-            text+= f"关闭用户: (met){TKlog['data'][tkno]['end_usr']}(met)\n"
-            text+= "\n"
-            text+= f"来自 (met){msg.author_id}(met) 的备注:\n> {cmt}"
-            c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
-            cm.append(c)
-            await upd_card(bot,TKlog['data'][tkno]['log_ch_msg_id'], cm, channel_type=msg.channel_type)
-            # 保存到文件
-            write_file("./log/TicketLog.json",TKlog)
-            await msg.reply(f"工单「{tkno}」备注成功！")
-            print(f"[{GetTime()}] [Cmt.TK] Au:{msg.author_id} - TkID:{tkno} = {cmt}")
-        else:
-            await msg.reply(f"您没有权限执行本命令！")
+        cmt = ' '.join(args) #备注信息
+        TKlog['data'][tkno]['cmt'] = cmt
+        TKlog['data'][tkno]['cmt_usr'] = msg.author_id
+        cm = CardMessage()
+        c = Card(Module.Header(f"工单 ticket.{tkno} 已备注"),Module.Context(f"信息更新于 {GetTime()}"),Module.Divider())
+        text = f"开启时间: {TKlog['data'][tkno]['start_time']}\n"
+        text+= f"发起用户: (met){TKlog['data'][tkno]['usr_id']}(met)\n"
+        text+= f"结束时间: {TKlog['data'][tkno]['end_time']}\n"
+        text+= f"关闭用户: (met){TKlog['data'][tkno]['end_usr']}(met)\n"
+        text+= "\n"
+        text+= f"来自 (met){msg.author_id}(met) 的备注:\n> {cmt}"
+        c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
+        cm.append(c)
+        await upd_card(bot,TKlog['data'][tkno]['log_ch_msg_id'], cm, channel_type=msg.channel_type)
+        # 保存到文件
+        write_file("./log/TicketLog.json",TKlog)
+        await msg.reply(f"工单「{tkno}」备注成功！")
+        print(f"[{GetTime()}] [Cmt.TK] Au:{msg.author_id} - TkID:{tkno} = {cmt}")  
     except:
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
         await msg.reply(f"{err_str}")
         print(err_str)
 
 @bot.command(name='add_admin_role',aliases=['aar'],case_sensitive=False)
-async def ticket_admin_role_add(msg:Message,role_id="",*arg):
+async def ticket_admin_role_add(msg:Message,role="",*arg):
     logging(msg)
-    if role_id == "":
-        await msg.reply("请提供需要添加的角色id")
-        return
-    try:
-        if not (await user_in_admin_role(msg.ctx.guild.id,msg.author_id)):
-            await msg.reply(f"您没有权限执行本命令！")
-            return
-        
-        global TKconf
-        if role_id in TKconf["ticket"]['admin_role']:
-            await msg.reply("这个id已经在配置文件 `TKconf['ticket']['admin_role']` 中啦！")
-            return
+    if role == "" or '(rol)' not in role:
+        return await msg.reply("请提供需要添加的角色：`/aar @角色`")
 
+    global TKconf
+    try:
+        role_id = role.replace("(rol)","")
+        if not (await user_in_admin_role(msg.ctx.guild.id,msg.author_id)):
+            return await msg.reply(f"您没有权限执行本命令！")
+        
+        if role_id in TKconf["ticket"]['admin_role']:
+            return await msg.reply("这个id已经在配置文件 `TKconf['ticket']['admin_role']` 中啦！")
+        
+        # 获取这个服务器的已有角色
         guild_roles = await (await bot.client.fetch_guild(msg.ctx.guild.id)).fetch_roles()
-        print(guild_roles)
+        print(guild_roles) # 打印出来做debug
         for r in guild_roles:
             if int(role_id) == r.id:
                 TKconf["ticket"]['admin_role'].append(role_id)
@@ -210,10 +210,9 @@ async def ticket_admin_role_add(msg:Message,role_id="",*arg):
                 # 保存到文件
                 write_file("./config/TicketConf.json",TKconf)
                 print(f"[{GetTime()}] [ADD.ADMIN.ROLE] role_id:{role_id} add to TKconf")
-                break
-        else:
-            await msg.reply(f"添加错误，请确认您提交的是本服务器的角色id")
-
+                return
+        # 遍历没有找到，提示用户
+        await msg.reply(f"添加错误，请确认您提交的是本服务器的角色id")
     except:
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
         await msg.reply(f"{err_str}")

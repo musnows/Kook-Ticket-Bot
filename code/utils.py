@@ -1,13 +1,18 @@
 import json
-import time
 import os
 import sys
 import traceback
 from khl import Message,Event
 
-#将获取当前时间封装成函数方便使用
-def GetTime():  
-    return time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
+from datetime import datetime
+from zoneinfo import ZoneInfo
+
+def GetTime():
+    """获取当前时间，格式为 `23-01-01 00:00:00`"""
+    a = datetime.now(ZoneInfo('Asia/Shanghai')) # 返回北京时间
+    return a.strftime('%y-%m-%d %H:%M:%S')
+    # use time.loacltime if you aren't using BeiJing Time
+    # return time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
 
 # 打开文件
 def open_file(path):
@@ -19,15 +24,18 @@ def write_file(path: str, value):
     with open(path, 'w+', encoding='utf-8') as fw2:
         json.dump(value, fw2, indent=2, sort_keys=True, ensure_ascii=False)
 
+# 刷新缓冲区
+def logFlush():
+    sys.stdout.flush() # 刷新缓冲区
+    sys.stderr.flush() # 刷新缓冲区
+
 # 设置日志文件的重定向
 def logDup(path:str='./log/log.txt'):
     file =  open(path, 'a')
     sys.stdout = file 
     sys.stderr = file
-# 刷新缓冲区
-def logFlush():
-    sys.stdout.flush() # 刷新缓冲区
-    sys.stderr.flush() # 刷新缓冲区
+    print(f"stdout/stderr dup to {path}")
+    logFlush()
 
 # 打印msg内容，用作日志
 def logging(msg: Message):
@@ -44,7 +52,7 @@ def help_text():
     text = "ticket-bot的命令操作\n"
     text+=f"`/ticket` 在本频道发送一条消息，作为ticket的开启按钮\n"
     text+=f"`/tkcm 工单id 备注` 对某一条已经关闭的工单进行备注\n"
-    text+=f"`/aar 角色id` 将角色id添加进入管理员角色\n"
+    text+=f"`/aar @角色组` 将角色添加进入管理员角色\n"
     text+=f"```\nid获取办法：kook设置-高级设置-打开开发者模式；右键用户头像即可复制用户id，右键频道/分组即可复制id，角色id需要进入服务器管理面板的角色页面中右键复制\n```\n"
     text+=f"以上命令都需要管理员才能操作\n"
     text+=f"`/gaming 游戏选项` 让机器人开始打游戏(代码中指定了几个游戏)\n"

@@ -182,9 +182,10 @@ async def ticket_commit(msg: Message,tkno:str,*args):
             text+= f"来自 (met){msg.author_id}(met) 的备注:\n> {cmt}"
             c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
             cm.append(c)
-            await upd_card(TKlog['data'][tkno]['log_msg_id'], cm, channel_type=msg.channel_type)
+            await upd_card(bot,TKlog['data'][tkno]['log_ch_msg_id'], cm, channel_type=msg.channel_type)
             # 保存到文件
             write_file("./log/TicketLog.json",TKlog)
+            await msg.reply(f"工单「{tkno}」备注成功！")
             print(f"[{GetTime()}] [Cmt.TK] Au:{msg.author_id} - TkID:{tkno} = {cmt}")
         else:
             await msg.reply(f"您没有权限执行本命令！")

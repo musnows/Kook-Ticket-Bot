@@ -265,13 +265,20 @@ async def ticket_open(b: Bot, e: Event):
             # 1.创建一个以开启ticket用户昵称为名字的文字频道
             ret1 = await channel_create(e.body['guild_id'],TKconf["ticket"]["category_id"],e.body['user_info']['username'])
             # 2.先设置管理员角色的权限
+            # 全局管理员
             for rol in TKconf["ticket"]['admin_role']:
                 # 在该频道创建一个角色权限
                 await crole_create(ret1["data"]["id"],"role_id",rol)
                 # 设置该频道的角色权限为可见
                 await crole_update(ret1["data"]["id"],"role_id",rol,2048)
                 await asyncio.sleep(0.2)# 休息一会 避免超速
-                
+            # 频道管理员
+            for rol in TKconf["ticket"]["channel_id"][e.body['target_id']]['admin_role']:
+                # 在该频道创建一个角色权限
+                await crole_create(ret1["data"]["id"],"role_id",rol)
+                # 设置该频道的角色权限为可见
+                await crole_update(ret1["data"]["id"],"role_id",rol,2048)
+                await asyncio.sleep(0.2)# 休息一会 避免超速
 
             # 3.设置该频道的用户权限（开启tk的用户）
             # 在该频道创建一个用户权限

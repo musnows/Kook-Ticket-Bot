@@ -24,22 +24,9 @@ A ticket bot for KOOK, **自托管**表单/工单系统机器人
 
 ## help command
 
-Bot的帮助命令为 `/tkhelp`，`@Bot`也能触发帮助命令
+Bot的帮助命令为 `/tkhelp`
 
-```python
-# help命令的内容
-def help_text():
-    text = "ticket-bot的命令操作\n"
-    text+=f"`/ticket` 在本频道发送一条消息，作为ticket的开启按钮\n"
-    text+=f"`/tkcm 工单id 备注` 对某一条已经关闭的工单进行备注\n"
-    text+=f"`/aar 角色id` 将角色id添加进入管理员角色\n"
-    text+=f"```\nid获取办法：kook设置-高级设置-打开开发者模式；右键用户头像即可复制用户id，右键频道/分组即可复制id，角色id需要进入服务器管理面板的角色页面中右键复制\n```\n"
-    text+=f"以上命令都需要管理员才能操作\n"
-    text+=f"`/gaming 游戏选项` 让机器人开始打游戏(代码中指定了几个游戏)\n"
-    text+=f"`/singing 歌名 歌手` 让机器人开始听歌\n"
-    text+=f"`/sleeping 1(2)` 让机器人停止打游戏1 or 听歌2\n"
-    return text
-```
+主要配置项均在配置文件中，后文有提及。
 
 ## Requerments
 
@@ -80,18 +67,20 @@ nohup python -u main.py >> ./log/bot.log 2>&1 &
 
 使用webhook方式会开启一个回调地址，该操作需要有公网ip的机器才能进行。如果你的机器人部署在无法外网访问的机器上，请采用websocket链接方式。
 
-开头有两种方式启动机器人的代码，根据需要，注释掉另外一个即可（比如我需要webhook，那就注释掉websocket的）记得在机器人管理后台修改机器人的链接配置。
+开头有两种方式启动机器人的代码，根据需要，注释掉另外一个即可（比如我需要webhook，那就注释掉websocket的）
+
+修改代码后，记得在kook机器人管理后台修改机器人的链接配置。
 
 ```python
 # bot = Bot(token=Botconf['token']) # websocket
 bot = Bot(cert=Cert(token=Botconf['token'], verify_token=Botconf['verify_token'],encrypt_key=Botconf['encrypt']),port=5000)# webhook
 ```
 
-如果采用webhook的连接方式（replit部署请采用此方式，方便机器人保活）需要在机器人后台填写回调地址（Callback Url）。
+如果采用webhook的连接方式（replit部署请采用此方式，方便机器人保活）需要在机器人后台填写回调地址（Callback Url）
 
 ```bash
 # 默认情况下（记得开放服务器对应端口的防火墙）
-公网ip:5000/khl-wh
+http://公网ip:5000/khl-wh
 # 如果是replit部署的，会给你提供一个url
 replit-url/khl-wh
 ```

@@ -245,6 +245,7 @@ async def ticket_open(b: Bot, e: Event):
     # 判断是否为ticket申请频道的id（文字频道id）
     global TKconf,TKlog
     try:
+        # e.body['target_id'] 是ticket按钮所在频道的id
         if e.body['target_id'] in TKconf["ticket"]["channel_id"]:
             loggingE(e,"TK.OPEN")
             # 1.创建一个以开启ticket用户昵称为名字的文字频道
@@ -268,6 +269,8 @@ async def ticket_open(b: Bot, e: Event):
             text = f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n"
             for roles_id in TKconf["ticket"]["admin_role"]:
                 text+=f"(rol){roles_id}(rol) "
+            for roles_id in TKconf["ticket"]["channel_id"][e.body['target_id']]['admin_role']:
+                text+=f"(rol){roles_id}(rol) "
             text+="\n"
             # 4.在创建出来的频道发送消息
             cm = CardMessage()
@@ -286,6 +289,7 @@ async def ticket_open(b: Bot, e: Event):
             TKlog['data'][no]['usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
             TKlog['data'][no]['msg_id'] = sent['msg_id'] # bot发送消息的id
             TKlog['data'][no]['channel_id'] = ret1["data"]["id"] # bot创建的频道id
+            TKlog['data'][no]['bt_channel_id'] = e.body['target_id'] # 开启该ticket的按钮所在频道的id
             TKlog['data'][no]['start_time'] = GetTime() # 开启时间
             TKlog['msg_pair'][sent['msg_id']] = no # 键值对，msgid映射ticket编号
             TKlog['TKchannel'][ret1["data"]["id"]] = no #记录bot创建的频道id，用于消息日志
@@ -318,7 +322,9 @@ async def ticket_close(b: Bot, e: Event):
         loggingE(e,"TK.CLOSE")
 
         # 判断是否为管理员，只有管理可以关闭tk
-        if not (await user_in_admin_role(e.body['guild_id'],e.body['user_id'])):
+        no = TKlog['msg_pair'][e.body['msg_id']] # 通过消息id获取到ticket的编号
+        btn_ch_id = TKlog['data'][no]['bt_channel_id'] # 开启该ticket的按钮所在频道的id
+        if not (await user_in_admin_role(e.body['guild_id'],e.body['user_id'],btn_ch_id)):
             temp_ch = await bot.client.fetch_public_channel(e.body['target_id'])
             await temp_ch.send(f"```\n抱歉，只有管理员用户可以关闭ticket\n```")
             print(f"[{GetTime()}] [TK.CLOSE] BTN.CLICK by none admin usr:{e.body['user_id']} - C:{e.body['target_id']}")
@@ -342,7 +348,6 @@ async def ticket_close(b: Bot, e: Event):
         print(f"[{GetTime()}] [TK.CLOSE] delete channel {e.body['target_id']}")
 
         # 记录信息
-        no = TKlog['msg_pair'][e.body['msg_id']] #通过消息id获取到ticket的编号
         TKlog['data'][no]['end_time'] = GetTime() #结束时间
         TKlog['data'][no]['end_usr'] = e.body['user_id'] #是谁关闭的
         TKlog['data'][no]['end_usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
@@ -366,7 +371,7 @@ async def ticket_close(b: Bot, e: Event):
             log_usr_sent = await open_usr.send(cm) #发送给用户
         except Exception as result:
             if '无法' in str(traceback.format_exc()):
-                print(f"ERR! [{GetTime()}] tk close Au:{TKlog['data'][no]['usr_id']}\n无法向用户发起私信")
+                print(f"ERR! [{GetTime()}] tk close Au:{TKlog['data'][no]['usr_id']} {result}")
             else:
                 raise result
 

@@ -6,13 +6,14 @@ import time
 import traceback
 import os
 
-from khl import Bot, Message, EventTypes, Event,Client,PublicChannel
+from khl import Bot,Cert, Message, EventTypes, Event,Client,PublicChannel
 from khl.card import CardMessage, Card, Module, Element, Types
 from kookApi import *
 from utils import *
 
 # config是在utils.py中读取的，直接import就能使用
-bot = Bot(token=Botconf['token'])
+# bot = Bot(token=Botconf['token']) # websocket
+bot = Bot(cert=Cert(token=Botconf['token'], verify_token=Botconf['verify_token'],encrypt_key=Botconf['encrypt']),port=5000) # webhook
 
 debug_ch = PublicChannel # bug    日志频道
 log_ch = PublicChannel   # tikcet 日志频道
@@ -21,36 +22,26 @@ Guild_ID = TKconf['guild_id'] # 服务器id
 #记录开机时间
 start_time = GetTime()
 
-# 标准输出重定向至文件
-# logDup('./log/log.txt')
-
 ####################################################################################
 
 # `/hello`指令，一般用于测试bot是否成功上线
-@bot.command(name='hello')
+@bot.command(name='hello',case_sensitive=False)
 async def world(msg: Message):
     logging(msg)
     await msg.reply('world!')
 
 # TKhelp帮助命令
-@bot.command(name='TKhelp',aliases=['tkhelp','thelp'])
+@bot.command(name='TKhelp',case_sensitive=False)
 async def help(msg: Message):
     logging(msg)
     text = help_text()
     await msg.reply(text)
 
-# #有人at机器人的时候也发送帮助命令
-# from khl.command import Rule
-# @bot.command(regex=r'(.+)', rules=[Rule.is_bot_mentioned(bot)])
-# async def atBOT(msg: Message, mention_str: str):
-#     logging(msg)
-#     text = help_text()
-#     await msg.reply(text)
     
 #####################################机器人动态#########################################
 
 # 开始打游戏
-@bot.command()
+@bot.command(name='game',aliases=['gaming'],case_sensitive=False)
 async def gaming(msg: Message,game:int=0,*arg):
     logging(msg)
     try:
@@ -73,7 +64,7 @@ async def gaming(msg: Message,game:int=0,*arg):
         print(err_str)
 
 # 开始听歌
-@bot.command()
+@bot.command(name='sing',aliases=['singing'],case_sensitive=False)
 async def singing(msg: Message,music:str='e',singer:str='e',*arg):
     logging(msg)
     try:
@@ -89,7 +80,7 @@ async def singing(msg: Message,music:str='e',singer:str='e',*arg):
         print(err_str)
     
 # 停止打游戏1/听歌2
-@bot.command(name='sleep')
+@bot.command(name='sleep',case_sensitive=False)
 async def sleeping(msg: Message,d:int=0,*arg):
     logging(msg)
     try:
@@ -121,7 +112,7 @@ async def user_in_admin_role(guild_id:str,user_id:str):
     return False
 
 # ticket系统,发送卡片消息
-@bot.command()
+@bot.command(name='ticket',case_sensitive=False)
 async def ticket(msg: Message):
     logging(msg)
     global TKconf
@@ -153,7 +144,7 @@ async def ticket(msg: Message):
         print(err_str)
 
 # ticket系统,对已完成ticket进行备注
-@bot.command(name='tkcm')
+@bot.command(name='tkcm',case_sensitive=False)
 async def ticket_commit(msg: Message,tkno:str,*args):
     logging(msg)
     if tkno == "":
@@ -194,7 +185,7 @@ async def ticket_commit(msg: Message,tkno:str,*args):
         await msg.reply(f"{err_str}")
         print(err_str)
 
-@bot.command(name='add_admin_role',aliases=['aar'])
+@bot.command(name='add_admin_role',aliases=['aar'],case_sensitive=False)
 async def ticket_admin_role_add(msg:Message,role_id="",*arg):
     logging(msg)
     if role_id == "":
@@ -493,8 +484,6 @@ async def kill(msg:Message,*arg):
     logFlush() # 刷新缓冲区
     os._exit(0) # 进程退出
 
-# 开机的时候打印一次时间，记录重启时间
-print(f"[BOT.START] Start at: [%s]" % start_time)
 
 @bot.task.add_date()
 async def loading_channel_cookie():
@@ -502,19 +491,20 @@ async def loading_channel_cookie():
         global debug_ch, log_ch
         debug_ch = await bot.client.fetch_public_channel(TKconf["ticket"]['debug_channel'])
         log_ch = await bot.client.fetch_public_channel(TKconf["ticket"]['log_channel'])
-        print("[BOT.START] fetch_public_channel success")
+        print(f"[BOT.START] fetch_public_channel success {GetTime()}")
         logFlush() # 刷新缓冲区
     except:
-        print("[BOT.START] fetch_public_channel failed")
+        print(f"[BOT.START] fetch_public_channel failed {GetTime()}")
         print(traceback.format_exc())
-        print("[BOT.START] 获取频道失败，请检查config文件中的debug_channel和log_channel")
+        print("[BOT.START] 获取频道失败，请检查config文件中的debug_channel和log_channel\n")
         logFlush() # 刷新缓冲区
         os._exit(-1)  #出现错误直接退出程序
 
-# 以下代码仅供replit部署使用
-# from keepal import keep_alive
-# keep_alive() # 运行Flask
-# 以上代码仅供replit部署使用
 
-# 开始运行bot
-bot.run()
+# 开机 （如果是主文件就开机）
+if __name__ == '__main__':
+    # 开机的时候打印一次时间，记录开启时间
+    print(f"[BOT] Start at {start_time}")
+    # 如果使用replit部署，取消下面这行的注释
+    # logDup('./log/log.txt') # 标准输出重定向至文件
+    bot.run()

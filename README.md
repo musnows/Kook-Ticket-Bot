@@ -72,9 +72,33 @@ nohup python -u main.py >> ./log/bot.log 2>&1 &
 
 ```json
 {
-    "token": "kook-bot websocket token"
+    "token":"bot webhook token",
+    "verify_token":"bot webhook verify token",
+    "encrypt":"bot webhook encrypt token",
 }
 ```
+
+使用webhook方式会开启一个回调地址，该操作需要有公网ip的机器才能进行。如果你的机器人部署在无法外网访问的机器上，请采用websocket链接方式。
+
+开头有两种方式启动机器人的代码，根据需要，注释掉另外一个即可（比如我需要webhook，那就注释掉websocket的）记得在机器人管理后台修改机器人的链接配置。
+
+```python
+# bot = Bot(token=Botconf['token']) # websocket
+bot = Bot(cert=Cert(token=Botconf['token'], verify_token=Botconf['verify_token'],encrypt_key=Botconf['encrypt']),port=5000)# webhook
+```
+
+如果采用webhook的连接方式（replit部署请采用此方式，方便机器人保活）需要在机器人后台填写回调地址（Callback Url）。
+
+```bash
+# 默认情况下（记得开放服务器对应端口的防火墙）
+公网ip:5000/khl-wh
+# 如果是replit部署的，会给你提供一个url
+replit-url/khl-wh
+```
+填写之后，点击`重试`按钮，测试webhook是否正常。如果显示`配置已保存`，那就是ok了！
+
+如果多次失败，请加入帮助频道咨询or采用websocket链接方式。
+
 
 ### 2.TicketConfig
 

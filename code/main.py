@@ -248,6 +248,17 @@ async def ticket_open(b: Bot, e: Event):
         # e.body['target_id'] 是ticket按钮所在频道的id
         if e.body['target_id'] in TKconf["ticket"]["channel_id"]:
             loggingE(e,"TK.OPEN")
+            # 0.先尝试给这个用户发个信息，发不过去，就提示他
+            try:
+                open_usr = await bot.client.fetch_user(e.body['user_id'])
+                await open_usr.send(f"您点击了ticket按钮，这是一个私信测试") #发送给用户
+            except Exception as result:
+                if '无法' in str(traceback.format_exc()):
+                    ch = await bot.client.fetch_public_channel(e.body['target_id'])
+                    await ch.send(f"为了保证ticket记录的送达，使用ticket-bot前，需要您私聊一下机器人（私聊内容不限）",temp_target_id=e.body['user_id'])
+                    print(f"ERR! [{GetTime()}] tk open Au:{e.body['user_id']} {result}")
+                else:
+                    raise result
             # 1.创建一个以开启ticket用户昵称为名字的文字频道
             ret1 = await channel_create(e.body['guild_id'],TKconf["ticket"]["category_id"],e.body['user_info']['username'])
             # 2.先设置管理员角色的权限
@@ -326,7 +337,7 @@ async def ticket_close(b: Bot, e: Event):
         btn_ch_id = TKlog['data'][no]['bt_channel_id'] # 开启该ticket的按钮所在频道的id
         if not (await user_in_admin_role(e.body['guild_id'],e.body['user_id'],btn_ch_id)):
             temp_ch = await bot.client.fetch_public_channel(e.body['target_id'])
-            await temp_ch.send(f"```\n抱歉，只有管理员用户可以关闭ticket\n```")
+            await temp_ch.send(f"```\n抱歉，只有管理员用户可以关闭ticket\n```",temp_target_id=e.body['user_id'])
             print(f"[{GetTime()}] [TK.CLOSE] BTN.CLICK by none admin usr:{e.body['user_id']} - C:{e.body['target_id']}")
             return
 

@@ -12,8 +12,8 @@ from kookApi import *
 from utils import *
 
 # config是在utils.py中读取的，直接import就能使用
-# bot = Bot(token=Botconf['token']) # websocket
-bot = Bot(cert=Cert(token=Botconf['token'], verify_token=Botconf['verify_token'],encrypt_key=Botconf['encrypt']),port=5000) # webhook
+bot = Bot(token=Botconf['token']) # websocket
+# bot = Bot(cert=Cert(token=Botconf['token'], verify_token=Botconf['verify_token'],encrypt_key=Botconf['encrypt']),port=5000) # webhook
 
 debug_ch = PublicChannel # bug    日志频道
 log_ch = PublicChannel   # tikcet 日志频道
@@ -99,16 +99,22 @@ async def sleeping(msg: Message,d:int=0,*arg):
 ################################以下是给ticket功能的内容########################################
 
 # 判断用户是否在管理员身份组里面
-async def user_in_admin_role(guild_id:str,user_id:str):
+async def user_in_admin_role(guild_id:str,user_id:str,channel_id=""):
+    """channel_id 必须为 ticket命令所在频道的id，并非每个工单频道的id"""
     if guild_id != Guild_ID: 
         return False # 如果不是预先设置好的服务器直接返回错误，避免bot被邀请到其他服务器去
     # 通过服务器id和用户id获取用户在服务器中的身份组
     guild = await bot.client.fetch_guild(guild_id)
     user_roles = (await guild.fetch_user(user_id)).roles
-    for ar in user_roles:# 遍历用户的身份组，看看有没有管理员身份组id
+    # 遍历用户的身份组，看看有没有管理员身份组id
+    for ar in user_roles:
+        # 判断是否在全局管理员中
         if str(ar) in TKconf["ticket"]["admin_role"]:
             return True
-
+        # channel_id不为空，判断是否为ticket局部管理员
+        if channel_id and str(ar) in TKconf["ticket"]["channel_id"][channel_id]['admin_role']:
+            return True
+    # 都不是
     return False
 
 # ticket系统,发送卡片消息
@@ -127,11 +133,11 @@ async def ticket(msg: Message):
                                         Element.Button('发起ticket',Types.Click.RETURN_VAL)))))
             if ch_id not in TKconf["ticket"]["channel_id"]: #如果不在    
                 # 发送完毕消息，并将该频道插入此目录
-                TKconf["ticket"]["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
+                TKconf["ticket"]["channel_id"][ch_id] = {'msg_id':send_msg["msg_id"],'admin_role':[]}
                 print(f"[{GetTime()}] [Add TKch] Au:{msg.author_id} ChID:{ch_id} MsgID:{send_msg['msg_id']}")
             else:
                 old_msg = TKconf["ticket"]["channel_id"][ch_id] #记录旧消息的id输出到日志
-                TKconf["ticket"]["channel_id"][ch_id] = send_msg["msg_id"] # 上面发送的消息的id
+                TKconf["ticket"]["channel_id"][ch_id]['msg_id'] = send_msg["msg_id"] # 更新消息id
                 print(f"[{GetTime()}] [Add TKch] Au:{msg.author_id} ChID:{ch_id} New_MsgID:{send_msg['msg_id']} Old:{old_msg}")
 
             # 保存到文件
@@ -193,23 +199,34 @@ async def ticket_admin_role_add(msg:Message,role="",*arg):
 
     global TKconf
     try:
+        is_global = '-g' in arg or '-G' in arg # 判断是否要添加到全局管理员中
         role_id = role.replace("(rol)","")
+        ch_id = msg.ctx.channel.id # 当前频道id
         if not (await user_in_admin_role(msg.ctx.guild.id,msg.author_id)):
             return await msg.reply(f"您没有权限执行本命令！")
-        
+        # 判断是否已经为全局管理员
         if role_id in TKconf["ticket"]['admin_role']:
-            return await msg.reply("这个id已经在配置文件 `TKconf['ticket']['admin_role']` 中啦！")
+            return await msg.reply("这个id已经在配置文件 `TKconf['ticket']['admin_role']`（全局管理员） 中啦！")
+        # 判断是否添加为当前频道的管理员（当前频道是否已有ticket
+        if not is_global and ch_id not in TKconf["ticket"]["channel_id"]:
+            return await msg.reply(f"当前频道暂无ticket触发按钮，无法设置当前频道ticket的管理员\n若想设置全局管理员，请在命令末尾添加`-g`参数")
         
         # 获取这个服务器的已有角色
         guild_roles = await (await bot.client.fetch_guild(msg.ctx.guild.id)).fetch_roles()
         print(guild_roles) # 打印出来做debug
+        # 遍历角色id，找有没有和这个角色相同的
         for r in guild_roles:
+            # 找到了
             if int(role_id) == r.id:
-                TKconf["ticket"]['admin_role'].append(role_id)
-                await msg.reply(f"{role_id} 添加成功！")
+                if is_global: # 添加到全局
+                    TKconf["ticket"]['admin_role'].append(role_id)
+                    await msg.reply(f"成功添加「{role_id}」为全局管理员")
+                else:
+                    TKconf["ticket"]["channel_id"][ch_id]['admin_role'].append(role_id)
+                    await msg.reply(f"成功添加「{role_id}」为当前频道ticket的管理员")
                 # 保存到文件
                 write_file("./config/TicketConf.json",TKconf)
-                print(f"[{GetTime()}] [ADD.ADMIN.ROLE] role_id:{role_id} add to TKconf")
+                print(f"[{GetTime()}] [ADD.ADMIN.ROLE] role_id:{role_id} add to TKconf [{is_global}]")
                 return
         # 遍历没有找到，提示用户
         await msg.reply(f"添加错误，请确认您提交的是本服务器的角色id")

@@ -103,6 +103,9 @@ async def user_in_admin_role(guild_id:str,user_id:str,channel_id=""):
     """channel_id 必须为 ticket命令所在频道的id，并非每个工单频道的id"""
     if guild_id != Guild_ID: 
         return False # 如果不是预先设置好的服务器直接返回错误，避免bot被邀请到其他服务器去
+    # 是master管理员
+    if user_id == TKconf["ticket"]["master_id"]:
+        return True
     # 通过服务器id和用户id获取用户在服务器中的身份组
     guild = await bot.client.fetch_guild(guild_id)
     user_roles = (await guild.fetch_user(user_id)).roles
@@ -502,17 +505,16 @@ async def log_file_save():
     logFlush() # 刷新缓冲区
 
 # kill命令安全退出
-@bot.command()
+@bot.command(name='kill')
 async def kill(msg:Message,*arg):
     logging(msg)
     if not (await user_in_admin_role(msg.ctx.guild.id,msg.author_id)):
-        await msg.reply(f"您没有权限执行本命令！")
-        return
+        return await msg.reply(f"您没有权限执行本命令！")
     
     # 发送信息提示
-    await msg.reply(f"bot exit")
+    await msg.reply(f"[KILL] bot exit")
     res = await bot_offline() # 调用接口下线bot
-    print(f"[KILL] [{GetTime()}] bot-off: {res}\n") # 打印下线日志
+    print(f"[KILL] [{GetTime()}] Au:{msg.author_id} | bot-off: {res}\n") # 打印下线日志
     logFlush() # 刷新缓冲区
     os._exit(0) # 进程退出
 

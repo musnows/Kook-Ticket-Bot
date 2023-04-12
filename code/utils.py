@@ -14,13 +14,14 @@ def GetTime():
     # use time.loacltime if you aren't using BeiJing Time
     # return time.strftime("%y-%m-%d %H:%M:%S", time.localtime())
 
-# 打开文件
 def open_file(path):
+    """打开文件"""
     with open(path, 'r', encoding='utf-8') as f:
         tmp = json.load(f)
     return tmp
-# 写入文件
+
 def write_file(path: str, value):
+    """写入文件,仅支持json格式的dict或者list"""
     with open(path, 'w+', encoding='utf-8') as fw2:
         json.dump(value, fw2, indent=2, sort_keys=True, ensure_ascii=False)
 
@@ -37,18 +38,19 @@ def logDup(path:str='./log/log.txt'):
     print(f"stdout/stderr dup to {path}")
     logFlush()
 
-# 打印msg内容，用作日志
 def logging(msg: Message):
+    """打印msg内容，用作日志"""
     print(f"[{GetTime()}] G:{msg.ctx.guild.id} - C:{msg.ctx.channel.id} - Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - content:{msg.content}")
     logFlush() # 刷新缓冲区 
 
-# 打印event的日志
+
 def loggingE(e: Event,func=""):
+    """打印event的日志"""
     print(f"[{GetTime()}] {func} Event:{e.body}")
     logFlush() # 刷新缓冲区
 
-# help命令的内容
 def help_text():
+    """help命令的内容"""
     text = "ticket-bot的命令操作\n"
     text+=f"`/ticket` 在本频道发送一条消息，作为ticket的开启按钮\n"
     text+=f"`/tkcm 工单id 备注` 对某一条已经关闭的工单进行备注\n"
@@ -60,9 +62,11 @@ def help_text():
     text+=f"`/sleeping 1(2)` 让机器人停止打游戏1 or 听歌2\n"
     return text
 
-# 创建根文件
+
 def create_logFile(path:str,content):
-    """Retrun value
+    """创建根文件/文件夹
+
+    Retrun value
     - False: path exist but keyerr / create false
     - True: path exist / path not exist, create success
     """
@@ -85,16 +89,22 @@ def create_logFile(path:str,content):
 ###############################################################################################
 
 # 所有文件如下
-
-Botconf = open_file('config/config.json')      # 机器人配置文件
-TKconf = open_file('config/TicketConf.json')   # 工单配置文件/表情角色配置文件
+Botconf = open_file('config/config.json') 
+"""机器人配置文件"""
+TKconf = open_file('config/TicketConf.json')
+"""工单配置文件/表情角色配置文件"""
 
 # 日志文件路径
 LogPath = './log'
+"""根路径"""
 TKlogPath = './log/TicketLog.json'
+"""工单日志 TicketLog.json"""
 TKMsgLogPath = './log/TicketMsgLog.json'
-TKLogFilePath = './log/ticket' #存放ticket消息记录日志的文件夹
+"""工单消息日志 TicketMsgLog.json"""
+TKLogFilePath = './log/ticket'
+"""存放ticket消息记录日志的文件夹"""
 ColorIdPath = './log/ColorID.json'
+"""表情上角色日志 ColorID.json"""
 
 try:
     # 如果log路径不存在，创建log文件夹
@@ -113,7 +123,7 @@ try:
     TKlog = open_file(TKlogPath) # ticket 历史记录
     TKMsgLog = open_file(TKMsgLogPath)# ticket 消息记录
 
-    # EMOJI键值存在才会加载
+    # 配置文件中，EMOJI键值存在才会加载
     if 'emoji' in TKconf:
         # 自动创建ColorID日志文件
         if(not create_logFile(ColorIdPath,{"data":{}})): 

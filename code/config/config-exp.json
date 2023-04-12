@@ -1,0 +1,6 @@
+{
+    "token":"bot webhook/websocket token",
+    "verify_token":"bot webhook verify token",
+    "encrypt":"bot webhook encrypt token",
+    "webscoket":false
+}

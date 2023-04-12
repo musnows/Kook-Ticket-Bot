@@ -84,6 +84,8 @@ def create_logFile(path:str,content):
 
 ###############################################################################################
 
+# 所有文件如下
+
 Botconf = open_file('config/config.json')      # 机器人配置文件
 TKconf = open_file('config/TicketConf.json')   # 工单配置文件/表情角色配置文件
 

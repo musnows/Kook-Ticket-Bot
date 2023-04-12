@@ -6,7 +6,7 @@ import time
 import traceback
 import os
 
-from khl import Bot,Cert, Message, EventTypes, Event,Client,PublicChannel
+from khl import Bot,Cert, Message, EventTypes, Event,Client,PublicChannel,Channel
 from khl.card import CardMessage, Card, Module, Element, Types
 from kookApi import *
 from utils import *
@@ -15,8 +15,8 @@ from utils import *
 bot = Bot(token=Botconf['token']) # websocket
 # bot = Bot(cert=Cert(token=Botconf['token'], verify_token=Botconf['verify_token'],encrypt_key=Botconf['encrypt']),port=5000) # webhook
 
-debug_ch = PublicChannel # bug    日志频道
-log_ch = PublicChannel   # tikcet 日志频道
+debug_ch:Channel # bug    日志频道
+log_ch:Channel   # tikcet 日志频道
 Guild_ID = TKconf['guild_id'] # 服务器id
 
 #记录开机时间
@@ -444,59 +444,74 @@ async def ticket_msg_log(msg: Message):
 
 # 用于记录使用表情回应获取ID颜色的用户
 async def save_userid_color(userid:str,emoji:str,uid:str):
+    """Args:
+    - userid: kook-user-id
+    - emoji: emoji id
+    - uid: str in TKconf['emoji']
+
+    Return:
+    - True:  old user
+    - False: new user
+    """
     global ColorIdDict
-    # 如果键值不在，创建键值
+    flag = True
+    # 如果键值不在，创建键值，代表之前没有获取过角色
     if uid not in ColorIdDict['data']:
         ColorIdDict['data'][uid]={}
-    
-    flag = False
-    # 如果用户是第一次添加表情回应，那就写入文件
-    if userid in ColorIdDict['data'][uid].keys():
-        write_file("./log/ColorID.json",ColorIdDict)
-        flag = True
-    # 不管有没有这个用户，都更新
+        flag = False
+    # 更新键值
     ColorIdDict['data'][uid][userid] = emoji
+    # 如果用户是第一次添加表情回应，那就写入文件
+    if flag:
+        write_file("./log/ColorID.json",ColorIdDict)
     return flag
 
 # 给用户上角色
-async def Color_GrantRole(bot: Bot, event: Event):
-    g = await bot.client.fetch_guild(Guild_ID)  # 服务器id
-    # 将event.body的msg_id和配置文件中msg_id进行对比，确认是那一条消息的表情回应
-    for euid,econf in TKconf['emoji'].items():
-        if event.body['msg_id'] != econf['msg_id']:
-            continue
-        try:
-            # 这里的打印eventbody的完整内容，包含emoji_id
+async def grant_role_func(bot: Bot, event: Event):
+    ch = debug_ch
+    try:
+        # 将event.body的msg_id和配置文件中msg_id进行对比，确认是那一条消息的表情回应
+        for euid,econf in TKconf['emoji'].items():
+            if event.body['msg_id'] != econf['msg_id']:
+                continue
+            # 1.这里的打印eventbody的完整内容，包含emoji_id
             print(f"[{GetTime()}] React:{event.body}")  
-            channel = await bot.client.fetch_public_channel(event.body['channel_id'])  #获取事件频道
-            user = await bot.client.fetch_user(event.body['user_id'])  #通过event获取用户id(对象)
-            # 判断用户回复的emoji是否合法
+            # 2.获取对象
+            g = await bot.client.fetch_guild(Guild_ID)  # 获取服务器（msg_id合法才获取，避免多次无效调用api）
+            ch = await bot.client.fetch_public_channel(event.body['channel_id'])  #获取事件频道
+            user = await g.fetch_user(event.body['user_id'])  #通过event获取用户id(对象)
+            # 3.判断用户回复的emoji是否合法
             emoji = event.body["emoji"]['id']
-            if emoji in econf['data']:
-                # 判断用户之前是否已经获取过角色
-                ret = await save_userid_color(event.body['user_id'], event.body["emoji"]['id'],euid)  
-                text = f'Bot已经给你上了 {emoji} 对应的颜色啦~'
-                if ret:  # 已经获取过角色
-                    text+="\n上次获取的角色已删除"
-                # 给予角色
-                role = int(econf['data'][emoji])
-                await g.grant_role(user, role)
-                await bot.client.send(channel, text, temp_target_id=event.body['user_id'])
-            else:  # 回复的表情不合法
-                await bot.client.send(channel, f'你回应的表情不在列表中哦~再试一次吧！', temp_target_id=event.body['user_id'])
-        except Exception as result:
-            err_text =f"出现了错误！au:{event.body['user_id']}\n{traceback.format_exc()}"
-            await bot.client.send(channel,err_text,temp_target_id=event.body['user_id'])
-            print(err_text)
+            if emoji not in econf['data']: # 不在配置文件中，忽略
+                return await ch.send(f'你回应的表情不在列表中哦~再试一次吧！', temp_target_id=event.body['user_id'])
+            
+            # 4.判断用户之前是否已经获取过角色
+            ret = await save_userid_color(event.body['user_id'], event.body["emoji"]['id'],euid)  
+            text = f'Bot已经给你上了 「{emoji}」 对应的颜色啦~'
+            if ret:  # 已经获取过角色
+                text+="\n上次获取的角色已删除"
+            # 5.给予角色
+            role = int(econf['data'][emoji]) # 角色id
+            await g.grant_role(user, role) # 上角色
+            # 6.发送提示信息给用户
+            await ch.send(text, temp_target_id=event.body['user_id'])
+            print(f"[{GetTime()}] Au:{user.id} grant rid:{role}")
+    except Exception as result:
+        err_text =f"上角色时出现了错误！Au:{event.body['user_id']}\n```\n{traceback.format_exc()}\n```"
+        if ch != debug_ch:
+            await ch.send(err_text,temp_target_id=event.body['user_id'])
+        else:
+            await ch.send(err_text)
+        print(err_text)
 
 
 
 # 判断消息的emoji回应，并给予不同角色
 @bot.on_event(EventTypes.ADDED_REACTION)
-async def Grant_Roles(b: Bot, event: Event):
+async def grant_role(b: Bot, event: Event):
     # 只有emoji的键值在配置文件中存在，才启用监看
     if 'emoji' in TKconf:
-        await Color_GrantRole(b, event)
+        await grant_role_func(b, event)
     # 如果想获取emoji的样式，比如频道自定义emoji，就需要在这里print
     # print(event.body) 
 
@@ -527,7 +542,7 @@ async def kill(msg:Message,*arg):
 
 
 @bot.task.add_date()
-async def loading_channel_cookie():
+async def loading_channel():
     try:
         global debug_ch, log_ch
         debug_ch = await bot.client.fetch_public_channel(TKconf["ticket"]['debug_channel'])

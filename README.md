@@ -187,9 +187,9 @@ ticket机器人需要您创建一个对全体成员不可见的隐藏分组，�
 * TKMsgChannel是用于记录bot创建的ticket频道id，和ticket编号对应，用来判断ticket频道是否有过消息（避免出现没有发过消息就关闭ticket频道的情况）
 * data为消息记录，作为ticket频道的消息记录
 
-为了保存聊天记录，还需要创建 `code/log/ticket` 文件夹，bot会在ticket关闭后，按照编号，保存 `code/log/ticket/编号.json` 文件，并删除 `TicketMsgLog.json` 中 `data` 字段里面的内容。
+为了保存聊天记录，还需要创建 `code/log/ticket` 文件夹（机器人会自动创建）
 
-- [ ] 后续会增加bot发送聊天记录文件到频道的功能
+bot会在ticket关闭后，按照编号，保存 `code/log/ticket/编号.json` 文件，并删除 `TicketMsgLog.json` 中 `data` 字段里面的内容。
 
 ----
 
@@ -219,7 +219,7 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 ----
 
-### emoji/role
+### 5.emoji/role
 
 这个功能的作用是根据一条消息的表情回应，给用户上对应的角色。类似于YY里的上马甲。
 
@@ -227,7 +227,7 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 <img src="./screenshots/emoji_role_rules.png" alt="emoji_role_rules">
 
-要想使用本功能，请创建 `code/log/ColorID.json`文件，复制如下内容到其中
+要想使用本功能，请创建 `code/log/ColorID.json`文件，复制如下内容到其中（新版本后，机器人会自动创建此文件）
 
 ```json
 {
@@ -261,50 +261,43 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 ```json
   "emoji": {
     "乱写一个字符串，以后不要修改": {
-      "channel_id": "该消息的频道id",
       "data": {
-        "❤": "3970687",
-        "🐷": "2881825",
-        "👍": "0",
-        "💙": "2928540",
-        "💚": "2904370",
-        "💛": "2882418",
-        "💜": "2907567",
-        "🖤": "4196071"
+        "❤": "对应的角色id-1",
+        "🐷": "对应的角色id-2",
+        "💙": "对应的角色id-3",
+        "👍": "0（对应的是全体成员的角色）",
       },
       "msg_id": "消息id"
     }
   }
 ```
+
 如果你有多个消息（比如不同的角色逻辑），那就在后续追加字段
 
 ```json
   "emoji": {
     "乱写一个字符串A，以后不要修改": {
-      "channel_id": "该消息的频道id",
       "data": {
-        "❤": "3970687",
-        "🐷": "2881825",
-        "👍": "0",
-        "💙": "2928540",
-        "💚": "2904370",
-        "💛": "2882418",
-        "💜": "2907567",
-        "🖤": "4196071"
+        "❤": "对应的角色id-1",
+        "🐷": "对应的角色id-2",
+        "💙": "对应的角色id-3",
+        "👍": "0（对应的是全体成员的角色）",
       },
-      "msg_id": "消息id"
+      "msg_id": "消息id A"
     },
     "乱写一个字符串B，以后不要修改": {
-      "channel_id": "该消息的频道id",
       "data": {},
-      "msg_id": "消息id"
+      "msg_id": "消息id B"
     }
   }
 ```
 
-bot会根据`emoji_id`给用户上对应的角色
+如下，您需要自行编写一个对应的角色关系消息，然后右键复制该消息的消息id。
+卡片消息可以用官方的 [卡片编辑器](https://www.kookapp.cn/tools/message-builder.html#/card) 编辑后发送
 
 <img src="./screenshots/role2.png" wight="250px" height="160px" alt="上角色的消息">
+
+配置后，bot会根据配置文件中的`emoji:角色`对照表，给用户上对应的角色
 
 <img src="./screenshots/role1.png" wight="350px" height="210px" alt="bot上角色">
 
@@ -318,23 +311,23 @@ bot会根据`emoji_id`给用户上对应的角色
 import requests
 
 url = "https://www.kookapp.cn/api/v3/game/create"
-botoken = "机器人websocket token"
-headers={f'Authorization': f"Bot {botoken}"}
+botoken = "机器人 websocket token"
+header={f'Authorization': f"Bot {botoken}"}
 params ={
     "name":"游戏名",
-    "icon":"游戏图标的url（可以将图片上传到kook后，点开大图，在右下角...处复制url"
+    "icon":"游戏图标的url (可以将图片上传到kook后，点开大图，在右下角...处复制url)"
 }
-ret = requests.post(url,params=params)
+ret = requests.post(url,headers=header,data=params)
 print(ret)
-print(ret.text)
+print(ret.text) # 返回值中有游戏的id
 ```
 
 在最后的输出结果中，会包含游戏的id。关于此api字段的解释见[官方文档](https://developer.kookapp.cn/doc/http/game#%E6%B7%BB%E5%8A%A0%E6%B8%B8%E6%88%8F)
 
-假设新增的游戏id为12345，那么就需要在gaming所在函数中，添加如下代码
+假设新增的游戏id为`12345`，那么就需要在`gaming`所在函数中，添加如下代码
 
 ~~~python
-  if game == 10: # 自己设定一个执行命令时需要的编号    
+  if game == 10: # 自己设定一个执行命令时需要的编号
       ret = await status_active_game(12345) # xxx游戏的id
       await msg.reply(f"{ret['message']}，Bot上号xxx游戏啦！")
 ~~~
@@ -342,6 +335,7 @@ print(ret.text)
 kook的在玩状态同步及其缓慢，请耐心等待。
 
 ## The end
+
 有任何问题，请添加`issue`，或加入我的交流服务器与我联系 [kook邀请链接](https://kook.top/gpbTwZ)
 
 如果你觉得本项目还不错，还请高抬贵手点个star✨，万般感谢！

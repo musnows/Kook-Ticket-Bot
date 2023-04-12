@@ -92,6 +92,8 @@ TKLogFilePath = './log/ticket'
 """存放ticket消息记录日志的文件夹"""
 ColorIdPath = './log/ColorID.json'
 """表情上角色日志 ColorID.json"""
+EMOJI_ROLES_ON:bool = 'emoji' in TKconf and TKconf['emoji'] != {}
+"""是否开启了表情回应上角色的功能"""
 
 try:
     # 如果log路径不存在，创建log文件夹
@@ -116,7 +118,7 @@ try:
     TKMsgLog = open_file(TKMsgLogPath)  # ticket 消息记录
 
     # 配置文件中，EMOJI键值存在才会加载
-    if 'emoji' in TKconf:
+    if EMOJI_ROLES_ON:
         # 自动创建ColorID日志文件
         if (not create_logFile(ColorIdPath, {"data": {}})):
             os._exit(-1)  # err,退出进程

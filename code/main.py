@@ -528,6 +528,7 @@ async def save_userid_color(userid: str, emoji: str, uid: str):
 
 # 给用户上角色
 async def grant_role_func(bot: Bot, event: Event):
+    """判断消息的emoji回应，并给予不同角色"""
     ch = debug_ch
     try:
         # 将event.body的msg_id和配置文件中msg_id进行对比，确认是那一条消息的表情回应
@@ -570,14 +571,15 @@ async def grant_role_func(bot: Bot, event: Event):
             await ch.send(err_text)
 
 
-# 判断消息的emoji回应，并给予不同角色
-@bot.on_event(EventTypes.ADDED_REACTION)
-async def grant_role(b: Bot, event: Event):
-    # 只有emoji的键值在配置文件中存在，才启用监看
-    if 'emoji' in TKconf:
+# 只有emoji的键值在配置文件中存在，才启用监看
+# 否则不加载这个event，节省性能
+if EMOJI_ROLES_ON: 
+    _log.info(f"[BOT.ON_EVENT] loading ADDED_REACTION")
+    @bot.on_event(EventTypes.ADDED_REACTION)
+    async def grant_role(b: Bot, event: Event):
         await grant_role_func(b, event)
-    # 如果想获取emoji的样式，比如频道自定义emoji，就需要在这里print
-    # print(event.body)
+        # 如果想获取emoji的样式，比如频道自定义emoji，就需要在这里print
+        # print(event.body)
 
 
 ##########################################################################################

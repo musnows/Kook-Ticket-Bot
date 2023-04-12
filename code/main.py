@@ -8,8 +8,11 @@ import os
 
 from khl import Bot, Cert, Message, EventTypes, Event, Channel
 from khl.card import CardMessage, Card, Module, Element, Types
-from kookApi import *
-from utils import *
+from utils import help
+from utils.myLog import _log
+from utils.gtime import GetTime
+from utils.file import *
+from utils.kookApi import *
 
 # config是在utils.py中读取的，直接import就能使用
 bot = Bot(token=Botconf['token'])  # websocket
@@ -42,9 +45,9 @@ async def world(msg: Message):
 
 # TKhelp帮助命令
 @bot.command(name='TKhelp', case_sensitive=False)
-async def help(msg: Message):
+async def help_cmd(msg: Message):
     logging(msg)
-    text = help_text()
+    text = help.help_text()
     await msg.reply(text)
 
 
@@ -71,9 +74,8 @@ async def gaming(msg: Message, game: int = 0, *arg):
             await msg.reply(f"{ret['message']}，Bot上号CSGO啦！")
 
     except Exception as result:
-        err_str = f"ERR! [{GetTime()}] sleep\n```\n{traceback.format_exc()}\n```"
-        await msg.reply(f"{err_str}")
-        print(err_str)
+        _log.exception(f"Au:{msg.author_id} | ERR")
+        await msg.reply(f"ERR! [{GetTime()}] game\n```\n{traceback.format_exc()}\n```")
 
 
 # 开始听歌
@@ -88,9 +90,8 @@ async def singing(msg: Message, music: str = 'e', singer: str = 'e', *arg):
         ret = await status_active_music(music, singer)
         await msg.reply(f"{ret['message']}，Bot开始听歌啦！")
     except Exception as result:
-        err_str = f"ERR! [{GetTime()}] sleep\n```\n{traceback.format_exc()}\n```"
-        await msg.reply(f"{err_str}")
-        print(err_str)
+        _log.exception(f"Au:{msg.author_id} | ERR")
+        await msg.reply(f"ERR! [{GetTime()}] sing\n```\n{traceback.format_exc()}\n```")
 
 
 # 停止打游戏1/听歌2
@@ -106,9 +107,8 @@ async def sleeping(msg: Message, d: int = 0, *arg):
         elif d == 2:
             await msg.reply(f"{ret['message']}，Bot摘下了耳机~")
     except Exception as result:
-        err_str = f"ERR! [{GetTime()}] sleep\n```\n{traceback.format_exc()}\n```"
-        await msg.reply(f"{err_str}")
-        print(err_str)
+        _log.exception(f"Au:{msg.author_id} | ERR")
+        await msg.reply(f"ERR! [{GetTime()}] sleep\n```\n{traceback.format_exc()}\n```")
 
 
 ################################以下是给ticket功能的内容########################################
@@ -152,23 +152,24 @@ async def ticket(msg: Message):
                     Card(
                         Module.Section(
                             '请点击右侧按钮发起ticket',
-                            Element.Button('发起ticket',
-                                           Types.Click.RETURN_VAL)))))
+                            Element.Button('ticket',
+                                           value='ticket',
+                                           click=Types.Click.RETURN_VAL)))))
             if ch_id not in TKconf["ticket"]["channel_id"]:  #如果不在
                 # 发送完毕消息，并将该频道插入此目录
                 TKconf["ticket"]["channel_id"][ch_id] = {
                     'msg_id': send_msg["msg_id"],
                     'admin_role': []
                 }
-                print(
-                    f"[{GetTime()}] [Add TKch] Au:{msg.author_id} ChID:{ch_id} MsgID:{send_msg['msg_id']}"
+                _log.info(
+                    f"[Add TKch] Au:{msg.author_id} ChID:{ch_id} MsgID:{send_msg['msg_id']}"
                 )
             else:
                 old_msg = TKconf["ticket"]["channel_id"][ch_id]  #记录旧消息的id输出到日志
                 TKconf["ticket"]["channel_id"][ch_id]['msg_id'] = send_msg[
                     "msg_id"]  # 更新消息id
-                print(
-                    f"[{GetTime()}] [Add TKch] Au:{msg.author_id} ChID:{ch_id} New_MsgID:{send_msg['msg_id']} Old:{old_msg}"
+                _log.info(
+                    f"[Add TKch] Au:{msg.author_id} ChID:{ch_id} New_MsgID:{send_msg['msg_id']} Old:{old_msg}"
                 )
 
             # 保存到文件
@@ -176,9 +177,8 @@ async def ticket(msg: Message):
         else:
             await msg.reply(f"您没有权限执行本命令！")
     except:
-        err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
-        await msg.reply(f"{err_str}")
-        print(err_str)
+        _log.exception(f"Au:{msg.author_id} | ERR")
+        await msg.reply(f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```")
 
 
 # ticket系统,对已完成ticket进行备注
@@ -221,12 +221,11 @@ async def ticket_commit(msg: Message, tkno: str, *args):
         # 保存到文件
         write_file("./log/TicketLog.json", TKlog)
         await msg.reply(f"工单「{tkno}」备注成功！")
-        print(
-            f"[{GetTime()}] [Cmt.TK] Au:{msg.author_id} - TkID:{tkno} = {cmt}")
+        _log.info(f"[Cmt.TK] Au:{msg.author_id} - TkID:{tkno} = {cmt}")
     except:
+        _log.exception(f"Au:{msg.author_id} | ERR")
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
         await msg.reply(f"{err_str}")
-        print(err_str)
 
 
 @bot.command(name='add_admin_role', aliases=['aar'], case_sensitive=False)
@@ -244,8 +243,7 @@ async def ticket_admin_role_add(msg: Message, role="", *arg):
             return await msg.reply(f"您没有权限执行本命令！")
         # 判断是否已经为全局管理员
         if role_id in TKconf["ticket"]['admin_role']:
-            return await msg.reply(
-                "这个id已经在配置文件 `TKconf['ticket']['admin_role']`（全局管理员） 中啦！")
+            return await msg.reply("这个id已经在配置文件 `TKconf['ticket']['admin_role']`（全局管理员） 中啦！")
         # 判断是否添加为当前频道的管理员（当前频道是否已有ticket
         if not is_global and ch_id not in TKconf["ticket"]["channel_id"]:
             return await msg.reply(
@@ -253,9 +251,8 @@ async def ticket_admin_role_add(msg: Message, role="", *arg):
             )
 
         # 获取这个服务器的已有角色
-        guild_roles = await (await bot.client.fetch_guild(msg.ctx.guild.id
-                                                          )).fetch_roles()
-        print(guild_roles)  # 打印出来做debug
+        guild_roles = await (await bot.client.fetch_guild(msg.ctx.guild.id)).fetch_roles()
+        _log.info(f"guild roles: {guild_roles}")  # 打印出来做debug
         # 遍历角色id，找有没有和这个角色相同的
         for r in guild_roles:
             # 找到了
@@ -269,16 +266,16 @@ async def ticket_admin_role_add(msg: Message, role="", *arg):
                     await msg.reply(f"成功添加「{role_id}」为当前频道ticket的管理员")
                 # 保存到文件
                 write_file("./config/TicketConf.json", TKconf)
-                print(
-                    f"[{GetTime()}] [ADD.ADMIN.ROLE] role_id:{role_id} add to TKconf [{is_global}]"
+                _log.info(
+                    f"[ADD.ADMIN.ROLE] rid:{role_id} | add to TKconf [{is_global}]"
                 )
                 return
         # 遍历没有找到，提示用户
         await msg.reply(f"添加错误，请确认您提交的是本服务器的角色id")
     except:
+        _log.exception(f"Au:{msg.author_id} | ERR")
         err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
         await msg.reply(f"{err_str}")
-        print(err_str)
 
 
 ######################################### ticket 监看 ###############################################################
@@ -300,14 +297,10 @@ async def ticket_open(b: Bot, e: Event):
                 await open_usr.send(f"您点击了ticket按钮，这是一个私信测试")  #发送给用户
             except Exception as result:
                 if '无法' in str(traceback.format_exc()):
-                    ch = await bot.client.fetch_public_channel(
-                        e.body['target_id'])
-                    await ch.send(
-                        f"为了保证ticket记录的送达，使用ticket-bot前，需要您私聊一下机器人（私聊内容不限）",
+                    ch = await bot.client.fetch_public_channel(e.body['target_id'])
+                    await ch.send(f"为了保证ticket记录的送达，使用ticket-bot前，需要您私聊一下机器人（私聊内容不限）",
                         temp_target_id=e.body['user_id'])
-                    print(
-                        f"ERR! [{GetTime()}] tk open Au:{e.body['user_id']} {result}"
-                    )
+                    _log.error(f"ERR! [tk open] | Au:{e.body['user_id']} = {result}")
                 else:
                     raise result
             # 1.创建一个以开启ticket用户昵称为名字的文字频道
@@ -378,13 +371,11 @@ async def ticket_open(b: Bot, e: Event):
 
             # 6.保存到文件
             write_file("./log/TicketLog.json", TKlog)
-            print(
-                f"[TK.OPEN] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}"
-            )
+            _log.info(f"[TK.OPEN] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}")
     except:
-        err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        _log.exception(f"ERR in TK.OPEN | E:{e.body}")
+        err_str = f"ERR! [{GetTime()}] TK.OPEN\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
-        print(err_str)
 
 
 # 监看工单关闭情况
@@ -393,16 +384,12 @@ async def ticket_close(b: Bot, e: Event):
     try:
         # 避免与tiket申请按钮冲突（文字频道id）
         if e.body['target_id'] in TKconf["ticket"]["channel_id"]:
-            print(
-                f"[{GetTime()}] [TK.CLOSE] BTN.CLICK channel_id in TKconf:{e.body['msg_id']}"
-            )
+            _log.info(f"[TK.CLOSE] BTN.CLICK channel_id in TKconf:{e.body['msg_id']}")
             return
 
         # 判断关闭按钮的卡片消息id是否在以开启的tk日志中，如果不在，则return
         if e.body['msg_id'] not in TKlog["msg_pair"]:
-            print(
-                f"[{GetTime()}] [TK.CLOSE] BTN.CLICK msg_id not in TKlog:{e.body['msg_id']}"
-            )
+            _log.info(f"[TK.CLOSE] BTN.CLICK msg_id not in TKlog:{e.body['msg_id']}")
             return
 
         # 基本有效则打印event的json内容
@@ -417,9 +404,7 @@ async def ticket_close(b: Bot, e: Event):
                                                             )
             await temp_ch.send(f"```\n抱歉，只有管理员用户可以关闭ticket\n```",
                                temp_target_id=e.body['user_id'])
-            print(
-                f"[{GetTime()}] [TK.CLOSE] BTN.CLICK by none admin usr:{e.body['user_id']} - C:{e.body['target_id']}"
-            )
+            _log.info(f"[TK.CLOSE] BTN.CLICK by none admin usr:{e.body['user_id']} | C:{e.body['target_id']}")
             return
 
         # 保存ticket的聊天记录(不在TKMsgLog里面代表一句话都没发)
@@ -429,18 +414,15 @@ async def ticket_close(b: Bot, e: Event):
             write_file(filename, TKMsgLog['data'][e.body['target_id']])
             del TKMsgLog["data"][e.body['target_id']]  # 删除日志文件中的该频道
             del TKMsgLog["TKMsgChannel"][e.body['target_id']]
-            print(
-                f"[{GetTime()}] [TK.CLOSE] save log msg of {TKlog['msg_pair'][e.body['msg_id']]}"
-            )
+            _log.info(f"[TK.CLOSE] save log msg of {TKlog['msg_pair'][e.body['msg_id']]}")
 
         # 保存完毕记录后，删除频道
         url2 = kook_base + '/api/v3/channel/delete'
         params2 = {"channel_id": e.body['target_id']}
         async with aiohttp.ClientSession() as session:
-            async with session.post(url2, data=params2,
-                                    headers=kook_headers) as response:
+            async with session.post(url2, data=params2,headers=kook_headers) as response:
                 ret2 = json.loads(await response.text())
-        print(f"[{GetTime()}] [TK.CLOSE] delete channel {e.body['target_id']}")
+        _log.info(f"[TK.CLOSE] delete channel {e.body['target_id']}")
 
         # 记录信息
         TKlog['data'][no]['end_time'] = GetTime()  #结束时间
@@ -448,7 +430,7 @@ async def ticket_close(b: Bot, e: Event):
         TKlog['data'][no][
             'end_usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}"  # 用户名字
         del TKlog['msg_pair'][e.body['msg_id']]  #删除键值对
-        print(f"[{GetTime()}] [TK.CLOSE] TKlog handling finished NO:{no}")
+        _log.info(f"[TK.CLOSE] TKlog handling finished NO:{no}")
 
         # 发送消息给开启该tk的用户和log频道
         cm = CardMessage()
@@ -467,29 +449,22 @@ async def ticket_close(b: Bot, e: Event):
             log_usr_sent = await open_usr.send(cm)  #发送给用户
         except Exception as result:
             if '无法' in str(traceback.format_exc()):
-                print(
-                    f"ERR! [{GetTime()}] tk close Au:{TKlog['data'][no]['usr_id']} {result}"
-                )
+                _log.warning(f"ERR! [TK.CLOSE] Au:{TKlog['data'][no]['usr_id']} = {result}")
             else:
                 raise result
 
         log_ch_sent = await log_ch.send(cm)  #发送到频道
         TKlog['data'][no]['log_ch_msg_id'] = log_ch_sent['msg_id']
         TKlog['data'][no]['log_usr_msg_id'] = log_usr_sent['msg_id']
-        print(
-            f"[{GetTime()}] [TK.CLOSE] TKlog msg send finished - ChMsgID:{log_ch_sent['msg_id']} - UMsgID:{log_usr_sent['msg_id']}"
-        )
+        _log.info(f"[TK.CLOSE] TKlog msg send finished - ChMsgID:{log_ch_sent['msg_id']} - UMsgID:{log_usr_sent['msg_id']}")
 
         # 保存到文件
         write_file("./log/TicketLog.json", TKlog)
-        print(
-            f"[{GetTime()}] [TK.CLOSE] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}"
-        )
+        _log.info(f"[TK.CLOSE] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}")
     except:
-        err_str = f"ERR! [{GetTime()}] tk close\n```\n{traceback.format_exc()}\n```"
+        _log.exception(f"ERR in [TK.CLOSE] | E:{e.body}")
+        err_str = f"ERR! [{GetTime()}] [TK.CLOSE]\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
-        print(err_str)
-
 
 # 记录ticket频道的聊天记录
 @bot.on_message()
@@ -516,13 +491,11 @@ async def ticket_msg_log(msg: Message):
             "content": msg.content,
             "time": GetTime()
         }
-        print(
-            f"[{GetTime()}] NO:{no} Au:{msg.author_id} {msg.author.nickname}#{msg.author.identify_num} = {msg.content}"
-        )
+        _log.info(f"TNO:{no} | Au:{msg.author_id} {msg.author.nickname}#{msg.author.identify_num} = {msg.content}")
     except:
+        _log.exception(f"ERR occur | Au:{msg.author_id}")
         err_str = f"ERR! [{GetTime()}] log_tk_msg\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
-        print(err_str)
 
 
 ################################以下是给用户上色功能的内容########################################
@@ -562,7 +535,7 @@ async def grant_role_func(bot: Bot, event: Event):
             if event.body['msg_id'] != econf['msg_id']:
                 continue
             # 1.这里的打印eventbody的完整内容，包含emoji_id
-            print(f"[{GetTime()}] React:{event.body}")
+            _log.info(f"React:{event.body}")
             # 2.获取对象
             g = await bot.client.fetch_guild(
                 GUILD_ID)  # 获取服务器（msg_id合法才获取，避免多次无效调用api）
@@ -587,14 +560,14 @@ async def grant_role_func(bot: Bot, event: Event):
             await g.grant_role(user, role)  # 上角色
             # 6.发送提示信息给用户
             await ch.send(text, temp_target_id=event.body['user_id'])
-            print(f"[{GetTime()}] Au:{user.id} grant rid:{role}")
+            _log.info(f"Au:{user.id} | grant rid:{role}")
     except Exception as result:
+        _log.exception(f"ERR | E:{event.body}")
         err_text = f"上角色时出现了错误！Au:{event.body['user_id']}\n```\n{traceback.format_exc()}\n```"
         if ch != debug_ch:
             await ch.send(err_text, temp_target_id=event.body['user_id'])
         else:
             await ch.send(err_text)
-        print(err_text)
 
 
 # 判断消息的emoji回应，并给予不同角色
@@ -615,7 +588,7 @@ async def grant_role(b: Bot, event: Event):
 async def log_file_save():
     write_file("./log/TicketMsgLog.json", TKMsgLog)
     write_file("./log/ColorID.json", ColorIdDict)
-    print(f"[FILE.SAVE] file save at {GetTime()}")
+    _log.info(f"[FILE.SAVE] file saved")
     logFlush()  # 刷新缓冲区
 
 
@@ -628,9 +601,11 @@ async def kill(msg: Message, *arg):
 
     # 发送信息提示
     await msg.reply(f"[KILL] bot exit")
-    res = await bot_offline()  # 调用接口下线bot
-    print(f"[KILL] [{GetTime()}] Au:{msg.author_id} | bot-off: {res}\n"
-          )  # 打印下线日志
+    # 如果是webscoket才调用下线接口
+    res = "webhook"
+    if Botconf['websocket']: 
+        res = await bot_offline()  # 调用接口下线bot
+    _log.info(f"[KILL] [{GetTime()}] Au:{msg.author_id} | bot-off: {res}\n")  # 打印下线日志
     logFlush()  # 刷新缓冲区
     os._exit(0)  # 进程退出
 
@@ -639,24 +614,20 @@ async def kill(msg: Message, *arg):
 async def loading_channel():
     try:
         global debug_ch, log_ch
-        debug_ch = await bot.client.fetch_public_channel(
-            TKconf["ticket"]['debug_channel'])
-        log_ch = await bot.client.fetch_public_channel(
-            TKconf["ticket"]['log_channel'])
-        print(f"[BOT.START] fetch_public_channel success {GetTime()}")
+        debug_ch = await bot.client.fetch_public_channel(TKconf["ticket"]['debug_channel'])
+        log_ch = await bot.client.fetch_public_channel(TKconf["ticket"]['log_channel'])
+        _log.info(f"[BOT.START] fetch_public_channel success")
         logFlush()  # 刷新缓冲区
     except:
-        print(f"[BOT.START] fetch_public_channel failed {GetTime()}")
-        print(traceback.format_exc())
-        print("[BOT.START] 获取频道失败，请检查config文件中的debug_channel和log_channel\n")
+        _log.exception(f"[BOT.START] fetch_public_channel failed")
+        _log.critical("[BOT.START] 获取频道失败，请检查TicketConf文件中的debug_channel和log_channel\n")
         logFlush()  # 刷新缓冲区
-        os._exit(-1)  #出现错误直接退出程序
+        os.abort()  #出现错误直接退出程序
 
 
-# 开机 （如果是主文件就开机）
+# 如果是主文件就开机
 if __name__ == '__main__':
     # 开机的时候打印一次时间，记录开启时间
-    print(f"[BOT] Start at {start_time}")
-    # 如果使用replit部署，取消下面这行的注释
-    # logDup('./log/log.txt') # 标准输出重定向至文件
-    bot.run()
+    _log.info(f"[BOT] Start at {start_time}")
+    # 开机
+    bot.run() 

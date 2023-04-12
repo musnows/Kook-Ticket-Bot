@@ -1,12 +1,15 @@
 import json
 import aiohttp
 from typing import Union
-from khl import  Bot,Message,ChannelPrivacyTypes
-from utils import Botconf
+from khl import  Bot,ChannelPrivacyTypes
+from .file import Botconf
+from .myLog import _log
 
 # kook api的头链接，请不要修改
 kook_base="https://www.kookapp.cn"
+"""kook api base url"""
 kook_headers={f'Authorization': f"Bot {Botconf['token']}"}
+"""kook api base headers"""
 
 
 # 让机器人开始打游戏
@@ -33,7 +36,7 @@ async def status_delete(d:int):
     async with aiohttp.ClientSession() as session:
         async with session.post(url, data=params,headers=kook_headers) as response:
                 return json.loads(await response.text())
-                #print(ret)
+                #_log.debug(ret)
 
 #更新卡片消息
 async def upd_card(bot:Bot,msg_id: str,
@@ -70,7 +73,7 @@ async def channel_create(guild_id:str,parent_id:str,name:str):
     async with aiohttp.ClientSession() as session:
         async with session.post(url1, data=params1,headers=kook_headers) as response:
                 ret1=json.loads(await response.text())
-                #print(ret1["data"]["id"])
+                #_log.debug(ret1["data"]["id"])
     return ret1
 
 # 创建角色权限
@@ -84,7 +87,7 @@ async def crole_create(channel_id:str,_type:str,_value:str):
     async with aiohttp.ClientSession() as session:
         async with session.post(url2, data=params2,headers=kook_headers) as response:
                 ret2=json.loads(await response.text())
-                #print(f"ret2: {ret2}")
+                #_log.debug(f"ret2: {ret2}")
     return ret2
 
 
@@ -99,7 +102,7 @@ async def crole_update(channel_id:str,_type:str,_value:str,_allow:int):
     async with aiohttp.ClientSession() as session:
         async with session.post(url3, data=params3,headers=kook_headers) as response:
                 ret3=json.loads(await response.text())
-                #print(f"ret3: {ret3}")
+                _log.debug(ret3)
     return ret3
 
 # 下线机器人

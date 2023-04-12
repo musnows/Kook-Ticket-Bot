@@ -1,7 +1,6 @@
 # Kook-Ticket-Bot
 
-![commit](https://img.shields.io/github/last-commit/musnows/Kook-Ticket-Bot) ![release](https://img.shields.io/github/v/release/musnows/Kook-Ticket-Bot)
-
+![commit](https://img.shields.io/github/last-commit/musnows/Kook-Ticket-Bot) ![release](https://img.shields.io/github/v/release/musnows/Kook-Ticket-Bot) [![khl server](https://www.kaiheila.cn/api/v3/badge/guild?guild_id=3986996654014459&style=0)](https://kook.top/gpbTwZ)
 
 A ticket bot for KOOK, **自托管**表单/工单系统机器人
 
@@ -52,7 +51,7 @@ nohup python -u main.py >> ./log/bot.log 2>&1 &
 
 因为bot开机的时候就会打开下面的文件，若缺少字段，会影响bot的正常运行；
 
-目前在 [code/utils.py](./code/utils.py) 的底部打开了所有的配置文件，并添加了 `create_logFile()` 函数来自动创建不存在的配置文件，以下README中对配置文件的示例仅供参考，若运行后出现了自动创建文件失败的报错，请采用REAMDE中的描述手动创建配置文件！
+目前在 [code/utils.py](./code/utils.py) 的底部打开了所有的配置文件，并添加了 `create_logFile()` 函数来自动创建不存在的配置文件。以下README中对配置文件的示例仅供参考，若运行后出现了自动创建文件失败的报错，请采用REAMDE中的描述手动创建配置文件！
 
 ### 1.bot token
 在 `code/config`路径中添加`config.json`，并在里面填入以下内容来初始化你的Bot
@@ -62,21 +61,22 @@ nohup python -u main.py >> ./log/bot.log 2>&1 &
     "token":"bot webhook token",
     "verify_token":"bot webhook verify token",
     "encrypt":"bot webhook encrypt token",
+    "websocket": true
 }
 ```
 
-使用webhook方式会开启一个回调地址，该操作需要有公网ip的机器才能进行。如果你的机器人部署在无法外网访问的机器上，请采用websocket链接方式。
+使用webhook方式会开启一个回调地址，该操作需要有`公网ip`的机器才能进行
 
-开头有两种方式启动机器人的代码，根据需要，注释掉另外一个即可（比如我需要webhook，那就注释掉websocket的）
+* 如果你的机器人部署在无法外网访问（无公网ip）的机器上，请采用websocket链接方式
+* 如果你的机器人在云服务器上部署，可以采用webhook方式
+* 如果你的机器人在replit托管，必须采用webhook以保证repl不休眠
 
-修改代码后，记得在kook机器人管理后台修改机器人的链接配置。
+`config.json`中的`"websocket"`字段为ws/wh的选项，如果使用webhook，请将该配置项改为flase
 
-```python
-# bot = Bot(token=Botconf['token']) # websocket
-bot = Bot(cert=Cert(token=Botconf['token'], verify_token=Botconf['verify_token'],encrypt_key=Botconf['encrypt']),port=5000)# webhook
-```
+* 修改配置后，记得在**kook机器人管理后台**修改机器人的链接配置
+* webhook需要正确填写`"verify_token"`和`"encrypt"`配置项
 
-如果采用webhook的连接方式（replit部署请采用此方式，方便机器人保活）需要在机器人后台填写回调地址（Callback Url）
+如果采用webhook的连接方式，需要在kook机器人后台填写回调地址（Callback Url）
 
 ```bash
 # 默认情况下（记得开放服务器对应端口的防火墙）
@@ -84,10 +84,17 @@ http://公网ip:5000/khl-wh
 # 如果是replit部署的，会给你提供一个url
 replit-url/khl-wh
 ```
-填写之后，点击`重试`按钮，测试webhook是否正常。如果显示`配置已保存`，那就是ok了！
+填写 `Callback Url` 之后，点击`重试`按钮，测试webhook是否正常。如果右下角显示`配置成功`，且没有红色字体的报错，那就是ok了！
 
-如果多次失败，请加入帮助频道咨询or采用websocket链接方式。
+如果多次点击重试后，依旧失败，请先尝试将url粘贴至浏览器，是否能正常访问。
 
+```
+如果浏览器显示
+405method not allowed
+那么代表你的url是没有问题的，可以正常在外网访问
+```
+
+如果浏览器显示正常，但kook配置还是不行，请[加入KOOK帮助频道](https://kook.top/gpbTwZ)咨询！
 
 ### 2.TicketConfig
 

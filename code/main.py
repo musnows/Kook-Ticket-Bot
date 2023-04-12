@@ -17,7 +17,7 @@ from utils.kookApi import *
 # config是在utils.py中读取的，直接import就能使用
 bot = Bot(token=Botconf['token'])  # websocket
 """main bot"""
-if not Botconf['websocket']:  # webhook
+if not Botconf['ws']:  # webhook
     bot = Bot(cert=Cert(token=Botconf['token'],
                         verify_token=Botconf['verify_token'],
                         encrypt_key=Botconf['encrypt']),
@@ -603,7 +603,7 @@ async def kill(msg: Message, *arg):
     await msg.reply(f"[KILL] bot exit")
     # 如果是webscoket才调用下线接口
     res = "webhook"
-    if Botconf['websocket']: 
+    if Botconf['ws']: 
         res = await bot_offline()  # 调用接口下线bot
     _log.info(f"[KILL] [{GetTime()}] Au:{msg.author_id} | bot-off: {res}\n")  # 打印下线日志
     logFlush()  # 刷新缓冲区

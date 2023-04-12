@@ -61,7 +61,7 @@ nohup python -u main.py >> ./log/bot.log 2>&1 &
     "token":"bot webhook token",
     "verify_token":"bot webhook verify token",
     "encrypt":"bot webhook encrypt token",
-    "websocket": true
+    "ws": true
 }
 ```
 
@@ -71,7 +71,7 @@ nohup python -u main.py >> ./log/bot.log 2>&1 &
 * 如果你的机器人在云服务器上部署，可以采用webhook方式
 * 如果你的机器人在replit托管，必须采用webhook以保证repl不休眠
 
-`config.json`中的`"websocket"`字段为ws/wh的选项，如果使用webhook，请将该配置项改为flase
+`config.json`中的`"ws"`字段为ws/wh的选项，如果使用webhook，请将该配置项改为flase
 
 * 修改配置后，记得在**kook机器人管理后台**修改机器人的链接配置
 * webhook需要正确填写`"verify_token"`和`"encrypt"`配置项

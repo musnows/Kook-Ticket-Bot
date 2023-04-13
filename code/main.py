@@ -294,7 +294,7 @@ async def ticket_open(b: Bot, e: Event):
             # 0.先尝试给这个用户发个信息，发不过去，就提示他
             try:
                 open_usr = await bot.client.fetch_user(e.body['user_id'])
-                await open_usr.send(f"您点击了ticket按钮，这是一个私信测试")  #发送给用户
+                send_msg = await open_usr.send(f"您点击了ticket按钮，这是一个私信测试")  #发送给用户
             except Exception as result:
                 if '无法' in str(traceback.format_exc()):
                     ch = await bot.client.fetch_public_channel(e.body['target_id'])

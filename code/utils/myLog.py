@@ -1,12 +1,12 @@
-from datetime import datetime
-from zoneinfo import ZoneInfo
-
+from datetime import datetime,timezone,timedelta
 import logging # 采用logging来替换所有print
-LOGGER_NAME = "botlog"
+
+LOGGER_NAME = "bot-log"
 LOGGER_FILE = "bot.log" # 如果想修改log文件的名字和路径，修改此变量
 
 def beijing(sec, what):
-    beijing_time = datetime.now(ZoneInfo('Asia/Shanghai')) # 返回北京时间
+    utc_dt = datetime.now(timezone.utc) # 获取当前时间
+    beijing_time = utc_dt.astimezone(timezone(timedelta(hours=8))) # 转换为北京时间
     return beijing_time.timetuple()
 # 日志时间改为北京时间
 logging.Formatter.converter = beijing # type:ignore

@@ -80,7 +80,8 @@ nohup python -u main.py >> ./log/bot.log 2>&1 &
 
 ```bash
 # 默认情况下（记得开放服务器对应端口的防火墙）
-http://公网ip:5000/khl-wh
+# 在main.py的开头，有机器人的初始化，内部有个port参数为端口
+http://公网ip:40000/khl-wh 
 # 如果是replit部署的，会给你提供一个url
 replit-url/khl-wh
 ```
@@ -90,7 +91,7 @@ replit-url/khl-wh
 
 ```
 如果浏览器显示
-405method not allowed
+405 method not allowed
 那么代表你的url是没有问题的，可以正常在外网访问
 ```
 

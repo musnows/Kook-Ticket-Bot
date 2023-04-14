@@ -166,8 +166,7 @@ async def ticket(msg: Message):
                 )
             else:
                 old_msg = TKconf["ticket"]["channel_id"][ch_id]  #记录旧消息的id输出到日志
-                TKconf["ticket"]["channel_id"][ch_id]['msg_id'] = send_msg[
-                    "msg_id"]  # 更新消息id
+                TKconf["ticket"]["channel_id"][ch_id]['msg_id'] = send_msg["msg_id"]  # 更新消息id
                 _log.info(
                     f"[Add TKch] Au:{msg.author_id} ChID:{ch_id} New_MsgID:{send_msg['msg_id']} Old:{old_msg}"
                 )
@@ -295,12 +294,14 @@ async def ticket_open(b: Bot, e: Event):
             try:
                 open_usr = await bot.client.fetch_user(e.body['user_id'])
                 send_msg = await open_usr.send(f"您点击了ticket按钮，这是一个私信测试")  #发送给用户
+                ret = await direct_msg_delete(send_msg['msg_id']) # 删除这个消息
+                _log.info(f"[TK.OPEN] pm msg send test success | {ret}")
             except Exception as result:
-                if '无法' in str(traceback.format_exc()):
+                if '无法' in str(result) or '屏蔽' in str(result):
                     ch = await bot.client.fetch_public_channel(e.body['target_id'])
                     await ch.send(f"为了保证ticket记录的送达，使用ticket-bot前，需要您私聊一下机器人（私聊内容不限）",
                         temp_target_id=e.body['user_id'])
-                    _log.error(f"ERR! [tk open] | Au:{e.body['user_id']} = {result}")
+                    _log.error(f"ERR! [TK.OPEN] | Au:{e.body['user_id']} = {result}")
                 else:
                     raise result
             # 1.创建一个以开启ticket用户昵称为名字的文字频道
@@ -347,7 +348,8 @@ async def ticket_open(b: Bot, e: Event):
             c1.append(
                 Module.ActionGroup(
                     Element.Button('关闭',
-                                   Types.Click.RETURN_VAL,
+                                   value = "close",
+                                   click=Types.Click.RETURN_VAL,
                                    theme=Types.Theme.DANGER)))
             cm.append(c1)
             channel = await bot.client.fetch_public_channel(ret1["data"]["id"])
@@ -417,20 +419,15 @@ async def ticket_close(b: Bot, e: Event):
             _log.info(f"[TK.CLOSE] save log msg of {TKlog['msg_pair'][e.body['msg_id']]}")
 
         # 保存完毕记录后，删除频道
-        url2 = kook_base + '/api/v3/channel/delete'
-        params2 = {"channel_id": e.body['target_id']}
-        async with aiohttp.ClientSession() as session:
-            async with session.post(url2, data=params2,headers=kook_headers) as response:
-                ret2 = json.loads(await response.text())
-        _log.info(f"[TK.CLOSE] delete channel {e.body['target_id']}")
+        ret = await delete_channel(e.body['target_id'])
+        _log.info(f"[TK.CLOSE] delete channel {e.body['target_id']} | {ret}")
 
         # 记录信息
         TKlog['data'][no]['end_time'] = GetTime()  #结束时间
         TKlog['data'][no]['end_usr'] = e.body['user_id']  #是谁关闭的
-        TKlog['data'][no][
-            'end_usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}"  # 用户名字
+        TKlog['data'][no]['end_usr_info'] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}" # 用户名字
         del TKlog['msg_pair'][e.body['msg_id']]  #删除键值对
-        _log.info(f"[TK.CLOSE] TKlog handling finished NO:{no}")
+        _log.info(f"[TK.CLOSE] TKlog handling finished | NO:{no}")
 
         # 发送消息给开启该tk的用户和log频道
         cm = CardMessage()

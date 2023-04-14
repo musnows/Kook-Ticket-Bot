@@ -136,3 +136,12 @@ async def direct_msg_delete(msg_id:str):
         async with session.post(url, data=params,headers=kook_headers) as response:
             res = json.loads(await response.text())
     return res
+
+async def delete_channel(channel_id:str):
+    """删除指定频道"""
+    url2 = kook_base + '/api/v3/channel/delete'
+    params2 = {"channel_id": channel_id}
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url2, data=params2,headers=kook_headers) as response:
+            ret2 = json.loads(await response.text())
+    return ret2

@@ -581,32 +581,37 @@ if EMOJI_ROLES_ON:
 
 ##########################################################################################
 
-
 # 定时保存log file
 @bot.task.add_interval(minutes=5)
 async def log_file_save():
-    write_file("./log/TicketMsgLog.json", TKMsgLog)
-    write_file("./log/ColorID.json", ColorIdDict)
-    _log.info(f"[FILE.SAVE] file saved")
-    logFlush()  # 刷新缓冲区
-
+    try:
+        write_all_files()
+        _log.info(f"[FILE.SAVE] file saved")
+        logFlush()  # 刷新缓冲区
+    except:
+        _log.exception(f"[FILE.SAVE] err")
 
 # kill命令安全退出
-@bot.command(name='kill')
+@bot.command(name='kill',case_sensitive=False)
 async def kill(msg: Message, *arg):
-    logging(msg)
-    if not (await user_in_admin_role(msg.ctx.guild.id, msg.author_id)):
-        return await msg.reply(f"您没有权限执行本命令！")
+    try:
+        logging(msg)
+        if not (await user_in_admin_role(msg.ctx.guild.id, msg.author_id)):
+            return await msg.reply(f"您没有权限执行本命令！")
 
-    # 发送信息提示
-    await msg.reply(f"[KILL] bot exit")
-    # 如果是webscoket才调用下线接口
-    res = "webhook"
-    if Botconf['ws']: 
-        res = await bot_offline()  # 调用接口下线bot
-    _log.info(f"[KILL] [{GetTime()}] Au:{msg.author_id} | bot-off: {res}\n")  # 打印下线日志
-    logFlush()  # 刷新缓冲区
-    os._exit(0)  # 进程退出
+        write_all_files()
+        # 发送信息提示
+        await msg.reply(f"[KILL] bot exit")
+        # 如果是webscoket才调用下线接口
+        res = "webhook"
+        if Botconf['ws']: 
+            res = await bot_offline()  # 调用接口下线bot
+        _log.info(f"[KILL] [{GetTime()}] Au:{msg.author_id} | bot-off: {res}\n")  # 打印下线日志
+        logFlush()  # 刷新缓冲区
+        os._exit(0)  # 进程退出
+    except:
+        _log.exception(f"kill err")
+        await msg.reply(f"kill err\n```\n{traceback.format_exc()}\n```")
 
 
 @bot.task.add_date()

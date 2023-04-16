@@ -73,6 +73,7 @@ def create_logFile(path: str, content):
         return False
 
 
+
 ###############################################################################################
 
 # 所有文件如下
@@ -80,6 +81,8 @@ Botconf = open_file('config/config.json')
 """机器人配置文件"""
 TKconf = open_file('config/TicketConf.json')
 """工单配置文件/表情角色配置文件"""
+ColorIdDict = {}
+"""记录用户在某个消息下获取的角色"""
 
 # 日志文件路径
 LogPath = './log'
@@ -114,8 +117,10 @@ try:
         os.makedirs(TKLogFilePath)  # 文件夹不存在，创建
 
     # 创建日志文件成功，打开
-    TKlog = open_file(TKlogPath)  # ticket 历史记录
-    TKMsgLog = open_file(TKMsgLogPath)  # ticket 消息记录
+    TKlog = open_file(TKlogPath) 
+    """ticket 历史记录"""
+    TKMsgLog = open_file(TKMsgLogPath) 
+    """ticket 消息记录"""
 
     # 配置文件中，EMOJI键值存在才会加载
     if EMOJI_ROLES_ON:
@@ -129,3 +134,10 @@ try:
 except:
     _log.info(f"[BOT.START] open log.files ERR")
     os._exit(-1)
+
+
+def write_all_files():
+    """写入所有文件"""
+    write_file(TKMsgLogPath, TKMsgLog)
+    write_file(ColorIdPath, ColorIdDict)
+    write_file(TKlogPath,TKlog)

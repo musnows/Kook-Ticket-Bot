@@ -2,7 +2,7 @@ import json
 import os
 import sys
 import traceback
-from khl import Message, Event
+from khl import Message, Event,PrivateMessage
 from .gtime import GetTime
 from .myLog import _log
 
@@ -35,11 +35,20 @@ def logDup(path: str = './log/log.txt'):
     logFlush()
 
 
-def logging(msg: Message):
-    """打印msg内容，用作日志"""
-    _log.info(
-        f"G:{msg.ctx.guild.id} - C:{msg.ctx.channel.id} - Au:{msg.author_id}_{msg.author.username}#{msg.author.identify_num} - content:{msg.content}"
-    )
+def logging(msg: Message) -> bool:
+    """打印msg内容，用作日志
+    - true: 公屏，允许运行
+    - false：私聊，不给运行"""
+    if isinstance(msg,PrivateMessage):
+        _log.info(
+            f"PmMsg - Au:{msg.author_id} {msg.author.username}#{msg.author.identify_num} - content:{msg.content}"
+        )
+        return False
+    else:
+        _log.info(
+            f"G:{msg.ctx.guild.id} - C:{msg.ctx.channel.id} - Au:{msg.author_id} {msg.author.username}#{msg.author.identify_num} - content:{msg.content}"
+        )
+        return True
 
 
 def loggingE(e: Event, func=" "):

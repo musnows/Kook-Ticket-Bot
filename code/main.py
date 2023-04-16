@@ -141,7 +141,7 @@ async def user_in_admin_role(guild_id: str, user_id: str, channel_id=""):
 # ticket系统,发送卡片消息
 @bot.command(name='ticket', case_sensitive=False)
 async def ticket(msg: Message):
-    logging(msg)
+    if not logging(msg):return
     global TKconf
     try:
         if (await user_in_admin_role(msg.ctx.guild.id, msg.author_id)):
@@ -183,7 +183,7 @@ async def ticket(msg: Message):
 # ticket系统,对已完成ticket进行备注
 @bot.command(name='tkcm', case_sensitive=False)
 async def ticket_commit(msg: Message, tkno: str, *args):
-    logging(msg)
+    if not logging(msg):return
     if tkno == "":
         await msg.reply(f"请提供ticket的八位数编号，如 000000123")
         return
@@ -229,7 +229,7 @@ async def ticket_commit(msg: Message, tkno: str, *args):
 
 @bot.command(name='add_admin_role', aliases=['aar'], case_sensitive=False)
 async def ticket_admin_role_add(msg: Message, role="", *arg):
-    logging(msg)
+    if not logging(msg):return
     if role == "" or '(rol)' not in role:
         return await msg.reply("请提供需要添加的角色：`/aar @角色`")
 

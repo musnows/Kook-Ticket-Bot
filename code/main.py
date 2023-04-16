@@ -593,11 +593,13 @@ async def log_file_save():
 
 # kill命令安全退出
 @bot.command(name='kill',case_sensitive=False)
-async def kill(msg: Message, *arg):
+async def kill(msg: Message, atbot="",*arg):
     try:
         logging(msg)
         if not (await user_in_admin_role(msg.ctx.guild.id, msg.author_id)):
             return await msg.reply(f"您没有权限执行本命令！")
+        if '(met)' not in atbot:
+            return await msg.reply(f"为了保证命令唯一性，执行本命令必须at机器人！`/kill @机器人`")
 
         write_all_files()
         # 发送信息提示

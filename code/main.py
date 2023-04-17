@@ -47,8 +47,13 @@ async def world(msg: Message):
 @bot.command(name='TKhelp', case_sensitive=False)
 async def help_cmd(msg: Message):
     logging(msg)
-    text = help.help_text()
-    await msg.reply(text)
+    cm = CardMessage(Card(
+        Module.Header("ticket机器人命令面板"),
+        Module.Context(f"开机于：{start_time}"),
+        Module.Divider(),
+        Module.Section(Element.Text(help.help_text(),Types.Text.KMD))
+    ))
+    await msg.reply(cm)
 
 
 #####################################机器人动态#########################################

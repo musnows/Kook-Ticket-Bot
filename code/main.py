@@ -352,15 +352,22 @@ async def ticket_open(b: Bot, e: Event):
                 await crole_update(ret1["data"]["id"], "user_id",
                                 e.body['user_id'], 2048)
 
-                # 管理员角色id，修改配置文件中的admin_role部分
+                # 先获取工单的编号
+                no = str(TKlog["TKnum"]) 
+                no = no.rjust(8, '0')
+                TKlog['TKnum'] += 1
+                # 4.在创建出来的频道发送消息
                 text = f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n"
+                text+= f"工单编号/ID：{no}\n"
+                text+= f"工单开启时间：{GetTime()}\n"
+                # 管理员角色id，修改配置文件中的admin_role部分
                 for roles_id in TKconf["ticket"]["admin_role"]:
                     text += f"(rol){roles_id}(rol) "
                 for roles_id in TKconf["ticket"]["channel_id"][
                         e.body['target_id']]['admin_role']:
                     text += f"(rol){roles_id}(rol) "
                 text += "\n"
-                # 4.在创建出来的频道发送消息
+                # 构造卡片
                 cm = CardMessage()
                 c1 = Card(Module.Section(Element.Text(text, Types.Text.KMD)))
                 c1.append(Module.Section('帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n'))
@@ -375,8 +382,6 @@ async def ticket_open(b: Bot, e: Event):
                 sent = await bot.client.send(channel, cm)
 
                 # 5.发送消息完毕，记录消息信息
-                no = str(TKlog["TKnum"])  #消息的编号，改成str处理
-                no = no.rjust(8, '0')
                 TKlog['data'][no] = {}
                 TKlog['data'][no]['usr_id'] = e.body['user_id']  # 发起ticket的用户id
                 TKlog['data'][no][
@@ -389,7 +394,6 @@ async def ticket_open(b: Bot, e: Event):
                 TKlog['msg_pair'][sent['msg_id']] = no  # 键值对，msgid映射ticket编号
                 TKlog['user_pair'][e.body['user_id']] = no  # 用户键值对，一个用户只能创建一个ticket
                 TKlog['TKchannel'][ret1["data"]["id"]] = no  #记录bot创建的频道id，用于消息日志
-                TKlog['TKnum'] += 1
 
                 # 6.保存到文件
                 write_file("./log/TicketLog.json", TKlog)

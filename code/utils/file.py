@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-import traceback
+import asyncio
 from khl import Message, Event,PrivateMessage
 from .gtime import GetTime
 from .myLog import _log
@@ -116,7 +116,8 @@ try:
             "TKnum": 0,
             "data": {},
             "msg_pair": {},
-            "TKchannel": {}
+            "TKchannel": {},
+            "user_pair":{}
     })):
         os._exit(-1)  # err,退出进程
     if (not create_logFile(TKMsgLogPath, {"TKMsgChannel": {}, "data": {}})):
@@ -144,9 +145,13 @@ except:
     _log.info(f"[BOT.START] open log.files ERR")
     os._exit(-1)
 
-
-def write_all_files():
+FileSaveLock = asyncio.Lock()
+"""开启工单上锁"""
+async def write_all_files():
     """写入所有文件"""
-    write_file(TKMsgLogPath, TKMsgLog)
-    write_file(ColorIdPath, ColorIdDict)
-    write_file(TKlogPath,TKlog)
+    global FileSaveLock
+    async with FileSaveLock:
+        write_file(TKMsgLogPath, TKMsgLog)
+        write_file(ColorIdPath, ColorIdDict)
+        write_file(TKlogPath,TKlog)
+        _log.info(f"[write.file] file saved at {GetTime()}")

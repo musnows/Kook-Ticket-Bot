@@ -7,8 +7,9 @@ from .gtime import GetTime
 from .myLog import _log
 
 
-def open_file(path):
+def open_file(path:str):
     """打开文件"""
+    assert(isinstance(path,str)) # 如果路径不是str，报错
     with open(path, 'r', encoding='utf-8') as f:
         tmp = json.load(f)
     return tmp
@@ -16,6 +17,7 @@ def open_file(path):
 
 def write_file(path: str, value):
     """写入文件,仅支持json格式的dict或者list"""
+    assert(isinstance(path,str)) # 如果路径不是str，报错
     with open(path, 'w+', encoding='utf-8') as fw2:
         json.dump(value, fw2, indent=2, sort_keys=True, ensure_ascii=False)
 
@@ -86,9 +88,14 @@ def create_logFile(path: str, content):
 ###############################################################################################
 
 # 所有文件如下
-Botconf = open_file('config/config.json')
+BotConfPath = "./config/config.json"
+"""机器人配置文件路径"""
+TKConfPath = "./config/TicketConf.json"
+"""工单配置文件路径"""
+
+Botconf = open_file(BotConfPath)
 """机器人配置文件"""
-TKconf = open_file('config/TicketConf.json')
+TKconf = open_file(TKConfPath)
 """工单配置文件/表情角色配置文件"""
 ColorIdDict = {}
 """记录用户在某个消息下获取的角色"""

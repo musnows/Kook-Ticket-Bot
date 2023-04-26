@@ -177,7 +177,7 @@ async def ticket(msg: Message):
                 )
 
             # 保存到文件
-            write_file("./config/TicketConf.json", TKconf)
+            write_file(TKConfPath, TKconf)
         else:
             await msg.reply(f"您没有权限执行本命令！")
     except:
@@ -223,7 +223,7 @@ async def ticket_commit(msg: Message, tkno: str, *args):
                        cm,
                        channel_type=msg.channel_type)
         # 保存到文件
-        write_file("./log/TicketLog.json", TKlog)
+        write_file(TKlogPath, TKlog)
         await msg.reply(f"工单「{tkno}」备注成功！")
         _log.info(f"[Cmt.TK] Au:{msg.author_id} - TkID:{tkno} = {cmt}")
     except:
@@ -269,7 +269,7 @@ async def ticket_admin_role_add(msg: Message, role="", *arg):
                         role_id)
                     await msg.reply(f"成功添加「{role_id}」为当前频道ticket的管理员")
                 # 保存到文件
-                write_file("./config/TicketConf.json", TKconf)
+                write_file(TKConfPath, TKconf)
                 _log.info(
                     f"[ADD.ADMIN.ROLE] rid:{role_id} | add to TKconf [{is_global}]"
                 )
@@ -396,7 +396,7 @@ async def ticket_open(b: Bot, e: Event):
                 TKlog['TKchannel'][ret1["data"]["id"]] = no  #记录bot创建的频道id，用于消息日志
 
                 # 6.保存到文件
-                write_file("./log/TicketLog.json", TKlog)
+                write_file(TKlogPath, TKlog)
                 _log.info(f"[TK.OPEN] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['start_time']}")
         except:
             _log.exception(f"ERR in TK.OPEN | E:{e.body}")
@@ -485,7 +485,7 @@ async def ticket_close(b: Bot, e: Event):
         _log.info(f"[TK.CLOSE] TKlog msg send finished - ChMsgID:{log_ch_sent['msg_id']} - UMsgID:{log_usr_sent['msg_id']}")
 
         # 保存到文件
-        write_file("./log/TicketLog.json", TKlog)
+        write_file(TKlogPath, TKlog)
         _log.info(f"[TK.CLOSE] Au:{e.body['user_id']} - TkID:{no} at {TKlog['data'][no]['end_time']}")
     except:
         _log.exception(f"ERR in [TK.CLOSE] | E:{e.body}")
@@ -548,7 +548,7 @@ async def save_userid_color(userid: str, emoji: str, uid: str):
     ColorIdDict['data'][uid][userid] = emoji
     # 如果用户是第一次添加表情回应，那就写入文件
     if flag:
-        write_file("./log/ColorID.json", ColorIdDict)
+        write_file(ColorIdPath, ColorIdDict)
     return flag
 
 

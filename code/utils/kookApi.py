@@ -106,13 +106,14 @@ async def crole_create(channel_id:str,_type:str,_value:str):
     return ret2
 
 
-async def crole_update(channel_id:str,_type:str,_value:str,_allow:int):
+async def crole_update(channel_id:str,_type:str,_value:str,_allow:int,_deny:int=-1):
     """设置角色权限,服务器角色权限值见 https://developer.kaiheila.cn/doc/http/guild-role
     - type: user_id / role_id
     - value: base on type
     """
     url3=kook_base+"/api/v3/channel-role/update"#设置角色权限
     params3 = {"channel_id": channel_id ,"type":_type,"value":_value,"allow":_allow}
+    if _deny!=-1: params3["deny"] = _deny
     async with aiohttp.ClientSession() as session:
         async with session.post(url3, data=params3,headers=kook_headers) as response:
                 ret3=json.loads(await response.text())

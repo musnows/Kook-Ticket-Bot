@@ -10,7 +10,7 @@ from khl import Bot, Cert, Message, EventTypes, Event, Channel
 from khl.card import CardMessage, Card, Module, Element, Types
 from utils import help
 from utils.myLog import _log
-from utils.gtime import GetTime
+from utils.gtime import GetTime,GetTimeStampFromStr
 from utils.file import *
 from utils.kookApi import *
 
@@ -33,6 +33,8 @@ log_ch: Channel
 """tikcet 日志频道"""
 GUILD_ID = TKconf["guild_id"]
 """服务器id"""
+OUTDATE_HOURS=TKconf["ticket"]['outdate']
+"""工单频道过期时间（单位：小时）"""
 
 start_time = GetTime()
 """记录开机时间"""
@@ -322,6 +324,7 @@ async def ticket_open(b: Bot, e: Event):
         global TKconf, TKlog
         try:
             # e.body['target_id'] 是ticket按钮所在频道的id
+            # 判断当前频道id是否在执行了ticket命令的频道中
             if e.body["target_id"] in TKconf["ticket"]["channel_id"]:
                 loggingE(e, "TK.OPEN")
                 # 如果用户已经在键值对里面了，提示，告知无法开启
@@ -567,13 +570,13 @@ async def ticket_msg_log(msg: Message):
         # 判断频道id是否在以开启的tk日志中，如果不在，则return
         if msg.ctx.channel.id not in TKlog["TKchannel"]:
             return
-
+        # TKlog的初始化时间晚于机器人发送关闭按钮的时间，所以机器人发送的第一条消息是不计入的
         # 如果不在TKMsgLog日志中，说明是初次发送消息，则创建键值
         no = TKlog["TKchannel"][msg.ctx.channel.id]
         if msg.ctx.channel.id not in TKMsgLog["TKMsgChannel"]:
-            log = {"first_msg_time": GetTime(), "msg": {}}
+            log = {"first_msg_time":time.time(), "msg": {}}
             TKMsgLog["data"][msg.ctx.channel.id] = log
-            TKMsgLog["TKMsgChannel"][msg.ctx.channel.id] = GetTime()  # 添加频道，代表该频道有发送过消息
+            TKMsgLog["TKMsgChannel"][msg.ctx.channel.id] = time.time()  # 添加频道，代表该频道有发送过消息
 
         # 如果在，那么直接添加消息就行
         TKMsgLog["data"][msg.ctx.channel.id]["msg"][str(time.time())] = {
@@ -583,6 +586,7 @@ async def ticket_msg_log(msg: Message):
             "user_name": f"{msg.author.nickname}#{msg.author.identify_num}",
             "content": msg.content,
             "time": GetTime(),
+            "time_stamp":time.time()
         }
         _log.info(
             f"TNO:{no} | Au:{msg.author_id} {msg.author.nickname}#{msg.author.identify_num} = {msg.content}"
@@ -593,12 +597,70 @@ async def ticket_msg_log(msg: Message):
         await debug_ch.send(err_str)
 
 
+@bot.task.add_interval(minutes=10)
+async def ticket_channel_activate_check():
+    """检查日志频道是否活跃。
+    超过指定天数没有发送信息的频道，将被机器人关闭
+    """
+    global TKMsgLog,TKlog
+    try:
+        # 在tklog msg_pair里面的是所有开启ticket的记录
+        for msg_id,tkno in TKlog["msg_pair"].items():
+            # 如果记录里面有endtime代表工单已被关闭，跳过(保证不出错)
+            if 'end_time' in TKlog['data'][tkno]:
+                # 报警是因为工单如果被关闭了，应该不会出现在这个循环中
+                _log.warning(f"[channel.activate] end_time in {tkno}")
+                continue
+            # 获取频道id
+            ch_id = TKlog["data"][tkno]['channel_id']
+            user_id = TKlog["data"][tkno]['usr_id'] # 开启工单的用户id
+            # 获取工单开始时间的时间戳
+            ticket_start_time = GetTimeStampFromStr(TKlog['data'][tkno]['start_time'])
+            cur_time = time.time() # 获取当前时间
+            text = f"进入锁定状态，禁止用户发言\n操作时间：{GetTime()}\n工单用户：(met){user_id}(met)"
+            values = json.dumps({
+                        "type": "ticket_reopen",
+                        "channel_id": ch_id,
+                        "user_id": user_id,
+                })
+            cm = CardMessage(Card(Module.Header(f"工单超出「{OUTDATE_HOURS}」小时未活动"),
+                                Module.Section(Element.Text(text,Types.Text.KMD),
+                                            Element.Button(text="重新激活",value=values))))
+            # 1.如果频道id不在msglog里面，代表一次发言都没有过（机器人发言未计入）
+            if ch_id not in TKMsgLog["TKMsgChannel"]:
+                time_diff = cur_time-ticket_start_time # 时间插值
+                if time_diff >= (OUTDATE_HOURS * 3600):# 超时时间*每小时秒数
+                    # 超出了超时时间还不发送消息，关闭用户发言权限
+                    await crole_update(ch_id, "user_id", user_id, 2048,4096)
+                    ch = await bot.client.fetch_public_channel(ch_id)
+                    await ch.send(cm)
+                    _log.info(f"C:{ch_id} Au:{user_id} | empty channel, close")
+                # 两种情况都继续
+                continue
+            # 2.走到这里代表有消息，筛选出消息时长最大的那个
+            msg_time_list = list(TKMsgLog["data"][ch_id]['msg'].keys())
+            max_time = 0
+            for time_str in msg_time_list:
+                max_time = int(time_str) if int(time_str) > max_time else max_time
+            # 获取到了list中的最大时间
+            time_diff = cur_time - max_time
+            if time_diff >= (OUTDATE_HOURS * 3600):# 超时时间*每小时秒数
+                # 超出了超时时间还不发送消息，关闭用户发言权限
+                await crole_update(ch_id, "user_id", user_id, 2048,4096)
+                ch = await bot.client.fetch_public_channel(ch_id)
+                await ch.send(cm)
+                _log.info(f"C:{ch_id} Au:{user_id} | no msg in {OUTDATE_HOURS}h, close")
+            # 继续执行
+            continue
+    except:
+        _log.info(f"err in task")
+
 ################################以下是给用户上色功能的内容########################################
 
-
-# 用于记录使用表情回应获取ID颜色的用户
 async def save_userid_color(userid: str, emoji: str, uid: str):
-    """Args:
+    """用于记录使用表情回应获取ID颜色的用户
+    
+    Args:
     - userid: kook-user-id
     - emoji: emoji id
     - uid: str in TKconf['emoji']
@@ -722,7 +784,7 @@ async def kill(msg: Message, atbot="", *arg):
         _log.exception(f"kill err")
         await msg.reply(f"kill err\n```\n{traceback.format_exc()}\n```")
 
-
+# 开机任务
 @bot.task.add_date()
 async def loading_channel():
     try:

@@ -58,7 +58,7 @@ def loggingE(e: Event, func=" "):
     _log.info(f"{func} | Event:{e.body}")
 
 
-def create_logFile(path: str, content):
+def create_log_file(path: str, content):
     """创建根文件/文件夹
 
     Retrun value
@@ -71,8 +71,8 @@ def create_logFile(path: str, content):
             tmp = open_file(path)  # 打开文件
             for key in content:  # 遍历默认的键值
                 if key not in tmp:  # 判断是否存在
-                    _log.info(
-                        f"[create_logFile] ERR! files exists, but key '{key}' not in {path} files!"
+                    _log.warning(
+                        f"[file] ERR! files exists, but key '{key}' not in {path}"
                     )
                     return False
             return True
@@ -97,8 +97,19 @@ Botconf = open_file(BotConfPath)
 """机器人配置文件"""
 TKconf = open_file(TKConfPath)
 """工单配置文件/表情角色配置文件"""
-ColorIdDict = {}
+__ColorIdDictExp = {"data":{}}
 """记录用户在某个消息下获取的角色"""
+__TKlogExp = {
+    "TKnum": 0,
+    "data": {},
+    "msg_pair": {},
+    "TKchannel": {},
+    "user_pair":{}
+}
+"""ticket编号和历史记录"""
+__TKMsgLogExp = {"TKMsgChannel": {}, "data": {}}
+"""ticket 消息记录"""
+
 
 # 日志文件路径
 LogPath = './log'
@@ -119,15 +130,9 @@ try:
     if (not os.path.exists(LogPath)):
         os.makedirs(LogPath)  # 文件夹不存在，创建
     # 自动创建TicketLog和TicketMsgLog日志文件
-    if (not create_logFile(TKlogPath, {
-            "TKnum": 0,
-            "data": {},
-            "msg_pair": {},
-            "TKchannel": {},
-            "user_pair":{}
-    })):
+    if (not create_log_file(TKlogPath,__TKlogExp)):
         os._exit(-1)  # err,退出进程
-    if (not create_logFile(TKMsgLogPath, {"TKMsgChannel": {}, "data": {}})):
+    if (not create_log_file(TKMsgLogPath, __TKMsgLogExp)):
         os._exit(-1)  # err,退出进程
     # 创建 ./log/ticket 文件夹，用于存放ticket的日志记录
     if (not os.path.exists(TKLogFilePath)):
@@ -135,14 +140,11 @@ try:
 
     # 创建日志文件成功，打开
     TKlog = open_file(TKlogPath) 
-    """ticket 历史记录"""
     TKMsgLog = open_file(TKMsgLogPath) 
-    """ticket 消息记录"""
-
     # 配置文件中，EMOJI键值存在才会加载
     if EMOJI_ROLES_ON:
         # 自动创建ColorID日志文件
-        if (not create_logFile(ColorIdPath, {"data": {}})):
+        if (not create_log_file(ColorIdPath, __ColorIdDictExp)):
             os._exit(-1)  # err,退出进程
         # 没有错误，打开文件
         ColorIdDict = open_file(ColorIdPath)  # 记录用户在某个消息下获取的角色
@@ -159,6 +161,7 @@ async def write_all_files():
     global FileSaveLock
     async with FileSaveLock:
         write_file(TKMsgLogPath, TKMsgLog)
-        write_file(ColorIdPath, ColorIdDict)
         write_file(TKlogPath,TKlog)
+        if EMOJI_ROLES_ON:
+            write_file(ColorIdPath, ColorIdDict)
         _log.info(f"[write.file] file saved at {GetTime()}")

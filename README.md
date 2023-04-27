@@ -32,18 +32,18 @@ Bot的帮助命令为 `/tkhelp`
 使用本机器人之前，请先确认您的python版本高于`3.9`, 安装以下依赖项
 
 ```
-pip install -r reqiurements.txt
+pip3 install -r reqiurements.txt
 ```
 
 完成下方的配置后，就可以运行bot了 (注意 工作路径是code目录)
 
 ```
-python main.py
+python3 main.py
 ```
 如果是linux系统需要bot后台运行，使用如下命令
 
 ```
-nohup python -u main.py >> ./log/bot.log 2>&1 &
+nohup python3 -u main.py >> ./log/bot.log 2>&1 &
 ```
 
 
@@ -99,29 +99,27 @@ replit-url/khl-wh
 
 ### 2.TicketConfig
 
-在 `code/config`路径中新增`TicketConf.json`，并填入以下内容（注意，这里的键值都不能修改）
+在 `code/config`路径中新增`TicketConf.json`，并填入 [TicketConf-exp](./code/config/TicketConf-exp.json) 中的内容（也可以直接拷贝一份exp文件并重命名
 
-```json
-{
-  "guild_id":"ticket bot 所服务的服务器id",
-  "ticket": {
-    "master_id":"管理员用户id",
-    "admin_role": [
-      "管理员角色id 1",
-      "管理员角色id 2"
-    ],
-    "category_id": "隐藏掉的频道分组id",
-    "channel_id": {},
-    "log_channel": "用于发送ticket日志的文字频道id",
-    "debug_channel": "用于发送bot出错信息的文字频道id"
-  }
-}
-```
-ticket机器人需要您创建一个对全体成员不可见的隐藏分组，设置该分组权限为`@全体成员->分组不可见`来隐藏；并给管理员角色设置权限，让管理员能看到这个分组。
+> 注意，配置文件里面的键值都不能修改
+
+ticket机器人需要您创建一个**对全体成员不可见**的隐藏分组，设置该分组权限为`@全体成员->分组不可见`来隐藏；并给管理员角色设置权限，让管理员能看到这个分组。
 
 `admin_role`中的管理员角色，即为机器人发送的ticket消息中会`@`的角色组；且只有拥有管理员身份组的用户，才能`关闭ticket/给ticket写评论`。
 
 <img src="./screenshots/tk2.png" wight="350px" height="220px" alt="bot发送附带关闭按钮的卡片">
+
+#### 工单超时
+
+`TicketConf`中的如下字段是工单超时时间，当一个工单频道超过配置的时间（单位：小时）没有发送过消息，就会将该工单频道**锁定**（用户无法发送消息，但依旧看得到工单频道。管理员不受影响）
+
+~~~
+"outdate":48
+~~~
+
+后续会新增已锁定工单频道的重新开启功能
+
+#### 单频道管理员（管理员分工）
 
 目前机器人新增了单频道管理员配置，源于不同频道的ticket按钮，可以通知不同的管理员用户
 
@@ -173,7 +171,8 @@ ticket机器人需要您创建一个对全体成员不可见的隐藏分组，�
     "TKnum": 0,
     "data": {},
     "msg_pair": {},
-    "TKchannel": {}
+    "TKchannel": {},
+    "user_pair":{}
 }
 ```
 

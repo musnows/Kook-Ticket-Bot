@@ -10,7 +10,7 @@ from khl import Bot, Cert, Message, EventTypes, Event, Channel
 from khl.card import CardMessage, Card, Module, Element, Types
 from utils import help
 from utils.myLog import _log
-from utils.gtime import GetTime,GetTimeStampFromStr
+from utils.gtime import GetTime,GetTimeStampFromStr,GetTimeStamp
 from utils.file import *
 from utils.kookApi import *
 
@@ -519,7 +519,7 @@ async def ticket_close(b: Bot, e: Event):
             "end_usr_info"
         ] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}"  # 用户名字
         del TKlog["msg_pair"][e.body["msg_id"]]  # 删除键值对
-        del TKlog["user_pair"][e.body["user_id"]]  # 删除用户键值对
+        del TKlog["user_pair"][TKlog["data"][no]['usr_id']]  # 删除用户键值对
         _log.info(f"[TK.CLOSE] TKlog handling finished | NO:{no}")
 
         # 发送消息给开启该tk的用户和log频道
@@ -597,13 +597,15 @@ async def ticket_msg_log(msg: Message):
         await debug_ch.send(err_str)
 
 
-@bot.task.add_interval(minutes=10)
+# 未完成，暂时不启用
+# @bot.task.add_interval(minutes=10)
 async def ticket_channel_activate_check():
     """检查日志频道是否活跃。
     超过指定天数没有发送信息的频道，将被机器人关闭
     """
     global TKMsgLog,TKlog
     try:
+        _log.info(f"[BOT.TASK] activate check start")
         # 在tklog msg_pair里面的是所有开启ticket的记录
         for msg_id,tkno in TKlog["msg_pair"].items():
             # 如果记录里面有endtime代表工单已被关闭，跳过(保证不出错)
@@ -616,7 +618,7 @@ async def ticket_channel_activate_check():
             user_id = TKlog["data"][tkno]['usr_id'] # 开启工单的用户id
             # 获取工单开始时间的时间戳
             ticket_start_time = GetTimeStampFromStr(TKlog['data'][tkno]['start_time'])
-            cur_time = time.time() # 获取当前时间
+            cur_time = GetTimeStamp() # 获取当前时间
             text = f"进入锁定状态，禁止用户发言\n操作时间：{GetTime()}\n工单用户：(met){user_id}(met)"
             values = json.dumps({
                         "type": "ticket_reopen",
@@ -652,6 +654,7 @@ async def ticket_channel_activate_check():
                 _log.info(f"C:{ch_id} Au:{user_id} | no msg in {OUTDATE_HOURS}h, close")
             # 继续执行
             continue
+        _log.info(f"[BOT.TASK] activate check end")
     except:
         _log.info(f"err in task")
 

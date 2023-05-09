@@ -180,7 +180,7 @@ async def ticket(msg: Message):
                             "请点击右侧按钮发起ticket",
                             Element.Button(
                                 "ticket", value=values, click=Types.Click.RETURN_VAL
-                            ),
+                            )
                         )
                     )
                 )
@@ -342,9 +342,7 @@ async def ticket_open_event(b: Bot, e: Event):
                     Card(Module.Section(Element.Text(text, Types.Text.KMD)))
                 )
                 await ch.send(cm, temp_target_id=e.body["user_id"])
-                _log.info(
-                    f"C:{e.body['target_id']} | Au:{e.body['user_id']} | user in tkconf:{no}"
-                )
+                _log.info(f"C:{e.body['target_id']} | Au:{e.body['user_id']} | user in tkconf:{no}")
                 return
             # 0.先尝试给这个用户发个信息，发不过去，就提示他
             try:
@@ -359,16 +357,17 @@ async def ticket_open_event(b: Bot, e: Event):
                         f"为了保证ticket记录的送达，使用ticket-bot前，需要您私聊一下机器人（私聊内容不限）",
                         temp_target_id=e.body["user_id"],
                     )
-                    _log.error(
-                        f"ERR! [TK.OPEN] | Au:{e.body['user_id']} = {result}"
-                    )
+                    _log.error(f"ERR! [TK.OPEN] | Au:{e.body['user_id']} = {result}")
                 else:
                     raise result
+            # 先获取工单的编号
+            no = str(TKlog["TKnum"]).rjust(8, "0")
+            TKlog["TKnum"] += 1
             # 1.创建一个以开启ticket用户昵称为名字的文字频道
             ret1 = await channel_create(
                 e.body["guild_id"],
                 TKconf["ticket"]["category_id"],
-                e.body["user_info"]["username"],
+                f"{no} | {e.body['user_info']['username']}",
             )
             # 2.先设置管理员角色的权限
             # 全局管理员
@@ -379,9 +378,7 @@ async def ticket_open_event(b: Bot, e: Event):
                 await crole_update(ret1["data"]["id"], "role_id", rol, 2048)
                 await asyncio.sleep(0.2)  # 休息一会 避免超速
             # 频道管理员
-            for rol in TKconf["ticket"]["channel_id"][e.body["target_id"]][
-                "admin_role"
-            ]:
+            for rol in TKconf["ticket"]["channel_id"][e.body["target_id"]]["admin_role"]:
                 # 在该频道创建一个角色权限
                 await crole_create(ret1["data"]["id"], "role_id", rol)
                 # 设置该频道的角色权限为可见
@@ -392,14 +389,8 @@ async def ticket_open_event(b: Bot, e: Event):
             # 在该频道创建一个用户权限
             await crole_create(ret1["data"]["id"], "user_id", e.body["user_id"])
             # 设置该频道的用户权限为可见
-            await crole_update(
-                ret1["data"]["id"], "user_id", e.body["user_id"], 2048
-            )
+            await crole_update(ret1["data"]["id"], "user_id", e.body["user_id"], 2048)
 
-            # 先获取工单的编号
-            no = str(TKlog["TKnum"])
-            no = no.rjust(8, "0")
-            TKlog["TKnum"] += 1
             # 4.在创建出来的频道发送消息
             text = f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n"
             text += f"工单编号/ID：{no}\n"
@@ -412,25 +403,20 @@ async def ticket_open_event(b: Bot, e: Event):
             ]:
                 text += f"(rol){roles_id}(rol) "
             text += "\n"
-            values = json.dumps(
-                {
-                    "type": TicketBtn.CLOSE,
-                    "channel_id": e.body["target_id"],
-                    "user_id": e.body["user_id"],
-                }
-            )
+            values_close = json.dumps({"type": TicketBtn.CLOSE,
+                                       "channel_id": e.body["target_id"],"user_id": e.body["user_id"],})
+            values_lock = json.dumps({"type": TicketBtn.LOCK,
+                                "channel_id": e.body["target_id"],"user_id": e.body["user_id"],})
             # 构造卡片
             cm = CardMessage()
-            c1 = Card(Module.Section(Element.Text(text, Types.Text.KMD)))
-            c1.append(Module.Section("帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n"))
+            c1 = Card(Module.Section(Element.Text(text, Types.Text.KMD)),Module.Divider())
+            text = "帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n"
+            text+= "或使用“锁定”功能，暂时锁定工单（可见,无法发言）"
+            c1.append(Module.Section(Element.Text(text, Types.Text.KMD)))
             c1.append(
                 Module.ActionGroup(
-                    Element.Button(
-                        "关闭",
-                        value=values,
-                        click=Types.Click.RETURN_VAL,
-                        theme=Types.Theme.DANGER,
-                    )
+                    Element.Button("关闭",value=values_close,click=Types.Click.RETURN_VAL,theme=Types.Theme.DANGER),
+                    Element.Button("锁定",value=values_lock,click=Types.Click.RETURN_VAL,theme=Types.Theme.WARNING)
                 )
             )
             cm.append(c1)
@@ -683,7 +669,7 @@ async def ticket_reopen_event(b:Bot,e:Event):
         await crole_update(ch_id, "user_id", user_id, 4096)
         # 发送信息到该频道
         ch = await bot.client.fetch_public_channel(ch_id)
-        c = Card(Module.Header(f"工单「{no}」重新开启"),Module.Divider())
+        c = Card(Module.Header(f"工单「{no}」重新激活"),Module.Divider())
         text = f"重启时间：{GetTime()}\n"
         text+= f"重启用户：(met){user_id}(met)\n"
         text+= f"用户ID：  {user_id}\n"
@@ -692,6 +678,13 @@ async def ticket_reopen_event(b:Bot,e:Event):
         _log.info(f"[TK.REOPEN] Au:{user_id} | C:{ch_id}")
     except:
         _log.exception(f"ERR in [TK.REOPEN] | E:{e.body}")
+
+async def ticket_lock_evnet(b:Bot,e:Event):
+    """锁定工单（效果和机器人自己扫的效果相同）"""
+    try:
+        pass
+    except:
+        _log.exception(f"ERR in [TK.LOCK] | E:{e.body}")
 
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_click_event_watch(b:Bot,e:Event):

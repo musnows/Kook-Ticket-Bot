@@ -6,6 +6,8 @@ from khl import Message, Event,PrivateMessage
 from .gtime import GetTime
 from .myLog import _log
 
+start_time = GetTime()
+"""记录开机时间"""
 
 def open_file(path:str):
     """打开文件"""
@@ -155,7 +157,7 @@ except:
     os._exit(-1)
 
 FileSaveLock = asyncio.Lock()
-"""开启工单上锁"""
+"""保存文件上锁"""
 async def write_all_files():
     """写入所有文件"""
     global FileSaveLock

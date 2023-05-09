@@ -33,11 +33,19 @@ log_ch: Channel
 """tikcet 日志频道"""
 GUILD_ID = TKconf["guild_id"]
 """服务器id"""
-OUTDATE_HOURS=TKconf["ticket"]['outdate']
+# 如下是针对工单按钮event的几个变量
+OUTDATE_HOURS = TKconf["ticket"]['outdate']
 """工单频道过期时间（单位：小时）"""
-
-start_time = GetTime()
-"""记录开机时间"""
+class TicketBtn:
+    """工单按钮event.value['type']"""
+    OPEN = 'tk_open'
+    """工单开启"""
+    CLOSE = 'tk_close'
+    """工单关闭"""
+    REOPEN = 'tk_reopen'
+    """工单重新激活"""
+    LOCK  = 'tk_lock'
+    """工单锁定"""
 
 ####################################################################################
 
@@ -162,7 +170,7 @@ async def ticket(msg: Message):
         if await user_in_admin_role(msg.ctx.guild.id, msg.author_id):
             ch_id = msg.ctx.channel.id  # 当前所处的频道id
             values = json.dumps(
-                {"type": "ticket_open", "channel_id": ch_id, "user_id": msg.author_id}
+                {"type": TicketBtn.OPEN, "channel_id": ch_id, "user_id": msg.author_id}
             )
             # 发送消息
             send_msg = await msg.ctx.channel.send(
@@ -188,9 +196,7 @@ async def ticket(msg: Message):
                 )
             else:
                 old_msg = TKconf["ticket"]["channel_id"][ch_id]  # 记录旧消息的id输出到日志
-                TKconf["ticket"]["channel_id"][ch_id]["msg_id"] = send_msg[
-                    "msg_id"
-                ]  # 更新消息id
+                TKconf["ticket"]["channel_id"][ch_id]["msg_id"] = send_msg["msg_id"]  # 更新消息id
                 _log.info(
                     f"[Add TKch] Au:{msg.author_id} ChID:{ch_id} New_MsgID:{send_msg['msg_id']} Old:{old_msg}"
                 )
@@ -313,11 +319,10 @@ async def ticket_admin_role_add(msg: Message, role="", *arg):
 TicketOpenLock = asyncio.Lock()
 """开启工单上锁"""
 
-
-# 监看工单系统(开启)
-# 相关api文档 https://developer.kaiheila.cn/doc/http/channel#%E5%88%9B%E5%BB%BA%E9%A2%91%E9%81%93
-@bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
-async def ticket_open(b: Bot, e: Event):
+async def ticket_open_event(b: Bot, e: Event):
+    """监看工单系统(开启)
+    - 相关api文档 https://developer.kaiheila.cn/doc/http/channel#%E5%88%9B%E5%BB%BA%E9%A2%91%E9%81%93
+    """
     global TicketOpenLock  # 同一时间只允许创建一个tk
     async with TicketOpenLock:
         # 判断是否为ticket申请频道的id（文字频道id）
@@ -409,7 +414,7 @@ async def ticket_open(b: Bot, e: Event):
                 text += "\n"
                 values = json.dumps(
                     {
-                        "type": "ticket_close",
+                        "type": TicketBtn.CLOSE,
                         "channel_id": e.body["target_id"],
                         "user_id": e.body["user_id"],
                     }
@@ -443,7 +448,7 @@ async def ticket_open(b: Bot, e: Event):
                 TKlog["data"][no]["bt_channel_id"] = e.body[
                     "target_id"
                 ]  # 开启该ticket的按钮所在频道的id
-                TKlog["data"][no]["start_time"] = GetTime()  # 开启时间
+                TKlog["data"][no]["start_time"] = time.time()  # 开启时间
                 TKlog["msg_pair"][sent["msg_id"]] = no  # 键值对，msgid映射ticket编号
                 TKlog["user_pair"][e.body["user_id"]] = no  # 用户键值对，一个用户只能创建一个ticket
                 TKlog["TKchannel"][ret1["data"]["id"]] = no  # 记录bot创建的频道id，用于消息日志
@@ -465,9 +470,8 @@ async def ticket_open(b: Bot, e: Event):
                 del TKlog["user_pair"][e.body["user_id"]]
 
 
-# 监看工单关闭情况
-@bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
-async def ticket_close(b: Bot, e: Event):
+async def ticket_close_event(b: Bot, e: Event):
+    """监看工单关闭情况"""
     try:
         # 避免与tiket申请按钮冲突（文字频道id）
         if e.body["target_id"] in TKconf["ticket"]["channel_id"]:
@@ -562,10 +566,9 @@ async def ticket_close(b: Bot, e: Event):
         err_str = f"ERR! [{GetTime()}] [TK.CLOSE]\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
 
-
-# 记录ticket频道的聊天记录
 @bot.on_message()
 async def ticket_msg_log(msg: Message):
+    """记录ticket频道的聊天记录"""
     try:
         # 判断频道id是否在以开启的tk日志中，如果不在，则return
         if msg.ctx.channel.id not in TKlog["TKchannel"]:
@@ -574,20 +577,22 @@ async def ticket_msg_log(msg: Message):
         # 如果不在TKMsgLog日志中，说明是初次发送消息，则创建键值
         no = TKlog["TKchannel"][msg.ctx.channel.id]
         if msg.ctx.channel.id not in TKMsgLog["TKMsgChannel"]:
-            log = {"first_msg_time":time.time(), "msg": {}}
+            log = {"first_msg_time":time.time(), "msg": {},"msg_num":0}
             TKMsgLog["data"][msg.ctx.channel.id] = log
             TKMsgLog["TKMsgChannel"][msg.ctx.channel.id] = time.time()  # 添加频道，代表该频道有发送过消息
 
         # 如果在，那么直接添加消息就行
-        TKMsgLog["data"][msg.ctx.channel.id]["msg"][str(time.time())] = {
+        no = TKMsgLog["data"][msg.ctx.channel.id]["msg_num"] # 编号
+        TKMsgLog["data"][msg.ctx.channel.id]["msg"][str(no)] = {
             "msg_id": msg.id,
             "channel_id": msg.ctx.channel.id,
             "user_id": msg.author_id,
             "user_name": f"{msg.author.nickname}#{msg.author.identify_num}",
             "content": msg.content,
-            "time": GetTime(),
             "time_stamp":time.time()
         }
+        TKMsgLog["data"][msg.ctx.channel.id]["msg_num"] += 1 # 编号+1
+        # 打印日志
         _log.info(
             f"TNO:{no} | Au:{msg.author_id} {msg.author.nickname}#{msg.author.identify_num} = {msg.content}"
         )
@@ -597,13 +602,13 @@ async def ticket_msg_log(msg: Message):
         await debug_ch.send(err_str)
 
 
-# 未完成，暂时不启用
-# @bot.task.add_interval(minutes=10)
+@bot.task.add_interval(minutes=10)
 async def ticket_channel_activate_check():
     """检查日志频道是否活跃。
     超过指定天数没有发送信息的频道，将被机器人关闭
     """
     global TKMsgLog,TKlog
+    msg_id = "none"
     try:
         _log.info(f"[BOT.TASK] activate check start")
         # 在tklog msg_pair里面的是所有开启ticket的记录
@@ -617,134 +622,88 @@ async def ticket_channel_activate_check():
             ch_id = TKlog["data"][tkno]['channel_id']
             user_id = TKlog["data"][tkno]['usr_id'] # 开启工单的用户id
             # 获取工单开始时间的时间戳
-            ticket_start_time = GetTimeStampFromStr(TKlog['data'][tkno]['start_time'])
-            cur_time = GetTimeStamp() # 获取当前时间
+            ticket_start_time = TKlog['data'][tkno]['start_time']
+            assert(isinstance(ticket_start_time,type(time.time()))) # 不能是str
+            cur_time = GetTimeStamp() # 获取当前时间戳
+
+            # 先构造卡片消息
             text = f"进入锁定状态，禁止用户发言\n操作时间：{GetTime()}\n工单用户：(met){user_id}(met)"
             values = json.dumps({
-                        "type": "ticket_reopen",
+                        "type": TicketBtn.REOPEN,
                         "channel_id": ch_id,
                         "user_id": user_id,
                 })
             cm = CardMessage(Card(Module.Header(f"工单超出「{OUTDATE_HOURS}」小时未活动"),
                                 Module.Section(Element.Text(text,Types.Text.KMD),
                                             Element.Button(text="重新激活",value=values))))
+            # 超时秒数 =  超时h * 每小时秒数
+            outdate_sec = OUTDATE_HOURS * 3600 
             # 1.如果频道id不在msglog里面，代表一次发言都没有过（机器人发言未计入）
             if ch_id not in TKMsgLog["TKMsgChannel"]:
                 time_diff = cur_time-ticket_start_time # 时间插值
-                if time_diff >= (OUTDATE_HOURS * 3600):# 超时时间*每小时秒数
+                if time_diff >= (outdate_sec):
                     # 超出了超时时间还不发送消息，关闭用户发言权限
                     await crole_update(ch_id, "user_id", user_id, 2048,4096)
                     ch = await bot.client.fetch_public_channel(ch_id)
                     await ch.send(cm)
                     _log.info(f"C:{ch_id} Au:{user_id} | empty channel, close")
-                # 两种情况都继续
+                # 两种情况都继续到下一个ticket
                 continue
+
             # 2.走到这里代表有消息，筛选出消息时长最大的那个
-            msg_time_list = list(TKMsgLog["data"][ch_id]['msg'].keys())
             max_time = 0
-            for time_str in msg_time_list:
+            for msg_info  in TKMsgLog["data"][ch_id]['msg']:
+                time_str = msg_info['time_stamp'] # 消息发送时间
                 max_time = int(time_str) if int(time_str) > max_time else max_time
-            # 获取到了list中的最大时间
+            # 获取到了list中的最大时间，max_time不能为0
             time_diff = cur_time - max_time
-            if time_diff >= (OUTDATE_HOURS * 3600):# 超时时间*每小时秒数
+            if  max_time == 0 or time_diff >= (outdate_sec):# 超时时间*每小时秒数
                 # 超出了超时时间还不发送消息，关闭用户发言权限
                 await crole_update(ch_id, "user_id", user_id, 2048,4096)
                 ch = await bot.client.fetch_public_channel(ch_id)
                 await ch.send(cm)
                 _log.info(f"C:{ch_id} Au:{user_id} | no msg in {OUTDATE_HOURS}h, close")
-            # 继续执行
+            # 继续执行下一个ticket
             continue
         _log.info(f"[BOT.TASK] activate check end")
     except:
-        _log.info(f"err in task")
+        _log.exception(f"err in task | msg:{msg_id}")
+
+
+@bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
+async def btn_click_event_watch(b:Bot,e:Event):
+    """通过按钮的value，分选给各个函数"""
+    try:
+        value = json.loads(e.body['value']) # 导入value
+        btn_type = value['type'] # 按钮类型
+        
+        if btn_type == TicketBtn.OPEN:
+            await ticket_open_event(b,e)
+        elif btn_type == TicketBtn.CLOSE:
+            await ticket_close_event(b,e)
+        elif btn_type == TicketBtn.REOPEN:
+            pass
+        elif btn_type == TicketBtn.LOCK:
+            pass
+        else:
+            _log.warning(f"invalied value.type | {e.body}")
+    except:
+        _log.exception(f"err in event watch | {e.body}")
+
 
 ################################以下是给用户上色功能的内容########################################
-
-async def save_userid_color(userid: str, emoji: str, uid: str):
-    """用于记录使用表情回应获取ID颜色的用户
-    
-    Args:
-    - userid: kook-user-id
-    - emoji: emoji id
-    - uid: str in TKconf['emoji']
-
-    Return:
-    - True:  old user
-    - False: new user
-    """
-    global ColorIdDict
-    flag = True
-    # 如果键值不在，创建键值，代表之前没有获取过角色
-    if uid not in ColorIdDict["data"]:
-        ColorIdDict["data"][uid] = {}
-        flag = False
-    # 更新键值
-    ColorIdDict["data"][uid][userid] = emoji
-    # 如果用户是第一次添加表情回应，那就写入文件
-    if flag:
-        write_file(ColorIdPath, ColorIdDict)
-    return flag
-
-
-# 给用户上角色
-async def grant_role_func(bot: Bot, event: Event):
-    """判断消息的emoji回应，并给予不同角色"""
-    ch = debug_ch
-    try:
-        # 将event.body的msg_id和配置文件中msg_id进行对比，确认是那一条消息的表情回应
-        for euid, econf in TKconf["emoji"].items():
-            if event.body["msg_id"] != econf["msg_id"]:
-                continue
-            # 1.这里的打印eventbody的完整内容，包含emoji_id
-            _log.info(f"React:{event.body}")
-            # 2.获取对象
-            g = await bot.client.fetch_guild(GUILD_ID)  # 获取服务器（msg_id合法才获取，避免多次无效调用api）
-            ch = await bot.client.fetch_public_channel(
-                event.body["channel_id"]
-            )  # 获取事件频道
-            user = await g.fetch_user(event.body["user_id"])  # 通过event获取用户id(对象)
-            # 3.判断用户回复的emoji是否合法
-            emoji = event.body["emoji"]["id"]
-            if emoji not in econf["data"]:  # 不在配置文件中，忽略
-                return await ch.send(
-                    f"你回应的表情不在列表中哦~再试一次吧！", temp_target_id=event.body["user_id"]
-                )
-
-            # 4.判断用户之前是否已经获取过角色
-            ret = await save_userid_color(
-                event.body["user_id"], event.body["emoji"]["id"], euid
-            )
-            text = f"「{user.nickname}#{user.identify_num}」Bot已经给你上了 「{emoji}」 对应的角色啦~"
-            if ret:  # 已经获取过角色
-                text += "\n上次获取的角色已删除"
-            # 5.给予角色
-            role = int(econf["data"][emoji])  # 角色id
-            await g.grant_role(user, role)  # 上角色
-            # 6.发送提示信息给用户
-            await ch.send(text, temp_target_id=event.body["user_id"])
-            _log.info(f"Au:{user.id} | grant rid:{role}")
-    except Exception as result:
-        _log.exception(f"ERR | E:{event.body}")
-        err_text = (
-            f"上角色时出现了错误！Au:{event.body['user_id']}\n```\n{traceback.format_exc()}\n```"
-        )
-        if ch != debug_ch:
-            await ch.send(err_text, temp_target_id=event.body["user_id"])
-        else:
-            await ch.send(err_text)
-
 
 # 只有emoji的键值在配置文件中存在，才启用监看
 # 否则不加载这个event，节省性能
 if EMOJI_ROLES_ON:
+    from utils.cmd.grantRoles import grant_role_event
     _log.info(f"[BOT.ON_EVENT] loading ADDED_REACTION")
-
+    # 添加event监看
     @bot.on_event(EventTypes.ADDED_REACTION)
     async def grant_role(b: Bot, event: Event):
-        await grant_role_func(b, event)
+        await grant_role_event(b, event)
         # 如果想获取emoji的样式，比如频道自定义emoji，就需要在这里print
         # print(event.body)
-
 
 ##########################################################################################
 

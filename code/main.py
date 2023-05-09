@@ -1,7 +1,7 @@
 # encoding: utf-8:
 import json
 import asyncio
-import aiohttp
+import copy
 import time
 import traceback
 import os
@@ -413,28 +413,25 @@ async def ticket_open_event(b: Bot, e: Event):
             text = "帮助结束后，请点击下方“关闭”按钮关闭该ticket频道\n"
             text+= "或使用“锁定”功能，暂时锁定工单（可见,无法发言）"
             c1.append(Module.Section(Element.Text(text, Types.Text.KMD)))
-            c1.append(
-                Module.ActionGroup(
-                    Element.Button("关闭",value=values_close,click=Types.Click.RETURN_VAL,theme=Types.Theme.DANGER),
-                    Element.Button("锁定",value=values_lock,click=Types.Click.RETURN_VAL,theme=Types.Theme.WARNING)
-                )
-            )
+            c1.append(Module.ActionGroup(
+                Element.Button("关闭",value=values_close,click=Types.Click.RETURN_VAL,theme=Types.Theme.DANGER),
+                Element.Button("锁定",value=values_lock,click=Types.Click.RETURN_VAL,theme=Types.Theme.WARNING)
+            ))
             cm.append(c1)
             channel = await bot.client.fetch_public_channel(ret1["data"]["id"])
             sent = await bot.client.send(channel, cm)
 
             # 5.发送消息完毕，记录消息信息
-            TKlog["data"][no] = {}
-            TKlog["data"][no]["usr_id"] = e.body["user_id"]  # 发起ticket的用户id
-            TKlog["data"][no][
-                "usr_info"
-            ] = f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}"  # 用户名字
-            TKlog["data"][no]["msg_id"] = sent["msg_id"]  # bot发送消息的id
-            TKlog["data"][no]["channel_id"] = ret1["data"]["id"]  # bot创建的频道id
-            TKlog["data"][no]["bt_channel_id"] = e.body[
-                "target_id"
-            ]  # 开启该ticket的按钮所在频道的id
-            TKlog["data"][no]["start_time"] = time.time()  # 开启时间
+            TKlog["data"][no] = {
+                "usr_id":e.body["user_id"],
+                "usr_info":f"{e.body['user_info']['username']}#{e.body['user_info']['identify_num']}",
+                "msg_id": sent["msg_id"],
+                "channel_id":ret1["data"]["id"],
+                "bt_channel_id":e.body["target_id"], # 开启该ticket的按钮所在频道的id
+                "start_time":time.time(),
+                "lock": False
+            }
+            # 键值对映射
             TKlog["msg_pair"][sent["msg_id"]] = no  # 键值对，msgid映射ticket编号
             TKlog["user_pair"][e.body["user_id"]] = no  # 用户键值对，一个用户只能创建一个ticket
             TKlog["TKchannel"][ret1["data"]["id"]] = no  # 记录bot创建的频道id，用于消息日志
@@ -585,6 +582,22 @@ async def ticket_msg_log(msg: Message):
         err_str = f"ERR! [{GetTime()}] log_tk_msg\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
 
+async def get_ticket_lock_card(channel_id:str,tk_user_id:str,btn_user_id:str,header_text=""):
+    """获取工单锁定的卡片
+    - channel_id: 目标频道
+    - tk_user_id:工单用户 
+    - btn_user:操作用户
+    - header_text: 标题文字
+    """
+    text = f"进入锁定状态，禁止用户发言\n操作时间：{GetTime()}\n"
+    text+= f"工单用户：(met){tk_user_id}(met)\n"
+    text+= f"操作用户：(met){btn_user_id}(met)"
+    values = json.dumps({"type": TicketBtn.REOPEN,
+                "channel_id": channel_id,"user_id": tk_user_id})
+    cm = CardMessage(Card(Module.Header(header_text),
+                        Module.Section(Element.Text(text,Types.Text.KMD),
+                                    Element.Button(text="重新激活",value=values))))
+    return cm
 
 @bot.task.add_interval(minutes=10)
 async def ticket_channel_activate_check():
@@ -595,12 +608,18 @@ async def ticket_channel_activate_check():
     msg_id = "none"
     try:
         _log.info(f"[BOT.TASK] activate check start")
+        # 机器人用户id
+        bot_id = (await bot.client.fetch_me()).id
         # 在tklog msg_pair里面的是所有开启ticket的记录
-        for msg_id,tkno in TKlog["msg_pair"].items():
+        TKLogTemp = copy.deepcopy(TKlog)
+        for msg_id,tkno in TKLogTemp["msg_pair"].items():
             # 如果记录里面有endtime代表工单已被关闭，跳过(保证不出错)
             if 'end_time' in TKlog['data'][tkno]:
                 # 报警是因为工单如果被关闭了，应该不会出现在这个循环中
                 _log.warning(f"[channel.activate] end_time in {tkno}")
+                continue
+            # 已经被锁定了，也跳过
+            if TKlog["data"][tkno]['lock']:
                 continue
             # 获取频道id
             ch_id = TKlog["data"][tkno]['channel_id']
@@ -611,26 +630,19 @@ async def ticket_channel_activate_check():
             cur_time = GetTimeStamp() # 获取当前时间戳
 
             # 先构造卡片消息
-            text = f"进入锁定状态，禁止用户发言\n操作时间：{GetTime()}\n工单用户：(met){user_id}(met)"
-            values = json.dumps({
-                        "type": TicketBtn.REOPEN,
-                        "channel_id": ch_id,
-                        "user_id": user_id,
-                })
-            cm = CardMessage(Card(Module.Header(f"工单超出「{OUTDATE_HOURS}」小时未活动"),
-                                Module.Section(Element.Text(text,Types.Text.KMD),
-                                            Element.Button(text="重新激活",value=values))))
+            cm = await get_ticket_lock_card(ch_id,user_id,bot_id,f"工单超出「{OUTDATE_HOURS}」小时未活动")
             # 超时秒数 =  超时h * 每小时秒数
             outdate_sec = OUTDATE_HOURS * 3600 
+            ch = await bot.client.fetch_public_channel(ch_id)
             # 1.如果频道id不在msglog里面，代表一次发言都没有过（机器人发言未计入）
             if ch_id not in TKMsgLog["TKMsgChannel"]:
                 time_diff = cur_time-ticket_start_time # 时间插值
                 if time_diff >= (outdate_sec):
                     # 超出了超时时间还不发送消息，关闭用户发言权限
                     await crole_update(ch_id, "user_id", user_id, 2048,4096)
-                    ch = await bot.client.fetch_public_channel(ch_id)
                     await ch.send(cm)
-                    _log.info(f"C:{ch_id} Au:{user_id} | empty channel, close")
+                    TKlog["data"][tkno]['lock'] = True
+                    _log.info(f"C:{ch_id} Au:{user_id} | empty channel, lock")
                 # 两种情况都继续到下一个ticket
                 continue
 
@@ -644,9 +656,9 @@ async def ticket_channel_activate_check():
             if  max_time == 0 or time_diff >= (outdate_sec):# 超时时间*每小时秒数
                 # 超出了超时时间还不发送消息，关闭用户发言权限
                 await crole_update(ch_id, "user_id", user_id, 2048,4096)
-                ch = await bot.client.fetch_public_channel(ch_id)
                 await ch.send(cm)
-                _log.info(f"C:{ch_id} Au:{user_id} | no msg in {OUTDATE_HOURS}h, close")
+                TKlog["data"][tkno]['lock'] = True
+                _log.info(f"C:{ch_id} Au:{user_id} | no msg in {OUTDATE_HOURS}h, lock")
             # 继续执行下一个ticket
             continue
         _log.info(f"[BOT.TASK] activate check end")
@@ -675,14 +687,34 @@ async def ticket_reopen_event(b:Bot,e:Event):
         text+= f"用户ID：  {user_id}\n"
         c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
         await ch.send(CardMessage(c))
-        _log.info(f"[TK.REOPEN] Au:{user_id} | C:{ch_id}")
+        # 修改文件
+        TKlog["data"][no]['lock'] = False
+        _log.info(f"[TK.REOPEN] Au:{user_id} | C:{ch_id} | success")
     except:
         _log.exception(f"ERR in [TK.REOPEN] | E:{e.body}")
 
 async def ticket_lock_evnet(b:Bot,e:Event):
     """锁定工单（效果和机器人自己扫的效果相同）"""
     try:
-        pass
+        value = json.loads(e.body['value']) # 导入value
+        user_id = value['user_id'] # 开启该工单的用户
+        ch_id = e.body["target_id"] # 该工单频道
+        # 判断开启用户是否在键值对中，不在代表有问题
+        if user_id not in TKlog["user_pair"]:
+            return _log.warning(f"[TK.LOCK] Au:{user_id} | C:{ch_id} | user not in pair")
+        # 获取频道obj
+        ch = await bot.client.fetch_public_channel(ch_id)
+        # 获取工单id
+        no = TKlog["user_pair"][user_id] # 用户键值对:id 
+        if TKlog["data"][no]['lock']:# 已经被锁定了
+            _log.info(f"[TK.LOCK] Au:{user_id} | C:{ch_id} | already lock")
+            return await ch.send(f"(met){user_id}(met) 该工单已锁定，请勿二次操作")
+        # 设置用户权限并发送信息
+        await crole_update(ch_id, "user_id", user_id, 2048,4096)
+        cm = await get_ticket_lock_card(ch_id,user_id,e.body['user_id'],f"工单「{no}」手动锁定")
+        await ch.send(cm)
+        TKlog["data"][no]['lock'] = True
+        _log.info(f"[TK.LOCK] Au:{user_id} | C:{ch_id}")
     except:
         _log.exception(f"ERR in [TK.LOCK] | E:{e.body}")
 
@@ -707,7 +739,8 @@ async def btn_click_event_watch(b:Bot,e:Event):
             _log.info(f"[TK.REOPEN] Au:{e.body['user_id']} C:{e.body['target_id']}")
             await ticket_reopen_event(b,e)
         elif btn_type == TicketBtn.LOCK:
-            pass
+            _log.info(f"[TK.LOCK] Au:{e.body['user_id']} C:{e.body['target_id']}")
+            await ticket_lock_evnet(b,e)
         else:
             _log.warning(f"invalied value.type | {e.body}")
     except:

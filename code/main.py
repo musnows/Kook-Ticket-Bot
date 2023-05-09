@@ -542,10 +542,8 @@ async def ticket_close_event(b: Bot, e: Event):
             open_usr = await bot.client.fetch_user(TKlog["data"][no]["usr_id"])
             log_usr_sent = await open_usr.send(cm)  # 发送给用户
         except Exception as result:
-            if "无法" in str(traceback.format_exc()):
-                _log.warning(
-                    f"ERR! [TK.CLOSE] Au:{TKlog['data'][no]['usr_id']} = {result}"
-                )
+            if "无法" in str(result) or '屏蔽' in str(result):
+                _log.warning(f"ERR! [TK.CLOSE] Au:{TKlog['data'][no]['usr_id']} = {result}")
             else:
                 raise result
 
@@ -670,6 +668,31 @@ async def ticket_channel_activate_check():
         _log.exception(f"err in task | msg:{msg_id}")
 
 
+async def ticket_reopen_event(b:Bot,e:Event):
+    """重新激活工单"""
+    try:
+        value = json.loads(e.body['value']) # 导入value
+        user_id = value['user_id'] # 开启该工单的用户
+        ch_id = value['channel_id'] # 该工单频道
+        # 判断开启用户是否在键值对中，不在代表有问题
+        if user_id not in TKlog["user_pair"]:
+            return _log.warning(f"[TK.REOPEN] Au:{user_id} | C:{ch_id} | user not in pair")
+        # 获取工单id
+        no = TKlog["user_pair"][user_id] # 用户键值对:id
+        # 重新允许用户发言
+        await crole_update(ch_id, "user_id", user_id, 4096)
+        # 发送信息到该频道
+        ch = await bot.client.fetch_public_channel(ch_id)
+        c = Card(Module.Header(f"工单「{no}」重新开启"),Module.Divider())
+        text = f"重启时间：{GetTime()}\n"
+        text+= f"重启用户：(met){user_id}(met)\n"
+        text+= f"用户ID：  {user_id}\n"
+        c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
+        await ch.send(CardMessage(c))
+        _log.info(f"[TK.REOPEN] Au:{user_id} | C:{ch_id}")
+    except:
+        _log.exception(f"ERR in [TK.REOPEN] | E:{e.body}")
+
 @bot.on_event(EventTypes.MESSAGE_BTN_CLICK)
 async def btn_click_event_watch(b:Bot,e:Event):
     """通过按钮的value，分选给各个函数"""
@@ -688,7 +711,8 @@ async def btn_click_event_watch(b:Bot,e:Event):
                 _log.info(f"[TK.CLOSE] Au:{e.body['user_id']} C:{e.body['target_id']}")
                 await ticket_close_event(b,e)
         elif btn_type == TicketBtn.REOPEN:
-            pass
+            _log.info(f"[TK.REOPEN] Au:{e.body['user_id']} C:{e.body['target_id']}")
+            await ticket_reopen_event(b,e)
         elif btn_type == TicketBtn.LOCK:
             pass
         else:

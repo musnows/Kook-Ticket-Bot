@@ -1,10 +1,11 @@
+# config file
 config.json
 TicketConf.json
-
+# old version log.file
 idsave_1.txt
 idsave_2.txt
 idsave_3.txt
-
+# log file
 __pycache__/
-code/log
+log/
 *.log

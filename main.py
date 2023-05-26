@@ -561,6 +561,8 @@ async def ticket_channel_activate_check():
                 _log.warning(f"[channel.activate] end_time in {tkno}")
                 continue
             # 已经被锁定了，也跳过
+            if 'lock' not in TKlog["data"][tkno]:
+                TKlog["data"][tkno] = False  # 创建键值为false
             if TKlog["data"][tkno]['lock']:
                 continue
             # 获取频道id

@@ -590,7 +590,7 @@ async def ticket_channel_activate_check():
 
             # 2.走到这里代表有消息，筛选出消息时长最大的那个
             max_time = 0
-            for msg_info  in TKMsgLog["data"][ch_id]['msg']:
+            for msg_no,msg_info in TKMsgLog["data"][ch_id]['msg'].items():
                 time_str = msg_info['time_stamp'] # 消息发送时间
                 max_time = int(time_str) if int(time_str) > max_time else max_time
             # 获取到了list中的最大时间，max_time不能为0

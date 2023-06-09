@@ -6,7 +6,7 @@ from khl import Message, Event,PrivateMessage
 from .gtime import GetTime
 from .myLog import _log
 
-start_time = GetTime()
+start_time = get_time()
 """记录开机时间"""
 
 def open_file(path:str):
@@ -166,4 +166,4 @@ async def write_all_files():
         write_file(TKlogPath,TKlog)
         if EMOJI_ROLES_ON:
             write_file(ColorIdPath, ColorIdDict)
-        _log.info(f"[write.file] file saved at {GetTime()}")
+        _log.info(f"[write.file] file saved at {get_time()}")

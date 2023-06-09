@@ -26,7 +26,7 @@ def init(bot:Bot):
 
         except Exception as result:
             _log.exception(f"Au:{msg.author_id} | ERR")
-            await msg.reply(f"ERR! [{GetTime()}] game\n```\n{traceback.format_exc()}\n```")
+            await msg.reply(f"ERR! [{get_time()}] game\n```\n{traceback.format_exc()}\n```")
 
 
     # 开始听歌
@@ -42,7 +42,7 @@ def init(bot:Bot):
             await msg.reply(f"{ret['message']}，Bot开始听歌啦！")
         except Exception as result:
             _log.exception(f"Au:{msg.author_id} | ERR")
-            await msg.reply(f"ERR! [{GetTime()}] sing\n```\n{traceback.format_exc()}\n```")
+            await msg.reply(f"ERR! [{get_time()}] sing\n```\n{traceback.format_exc()}\n```")
 
 
     # 停止打游戏1/听歌2
@@ -59,6 +59,6 @@ def init(bot:Bot):
                 await msg.reply(f"{ret['message']}，Bot摘下了耳机~")
         except Exception as result:
             _log.exception(f"Au:{msg.author_id} | ERR")
-            await msg.reply(f"ERR! [{GetTime()}] sleep\n```\n{traceback.format_exc()}\n```")
+            await msg.reply(f"ERR! [{get_time()}] sleep\n```\n{traceback.format_exc()}\n```")
 
     _log.info(f"load botStatus.py")

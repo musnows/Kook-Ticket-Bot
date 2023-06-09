@@ -10,7 +10,7 @@ from khl import Bot, Cert, Message, EventTypes, Event, Channel
 from khl.card import CardMessage, Card, Module, Element, Types
 from utils import help
 from utils.myLog import _log
-from utils.gtime import GetTime,GetTimeStampFromStr,GetTimeStamp
+from utils.gtime import get_time,get_time_stamp_from_str,get_time_str_from_stamp,get_time_stamp
 from utils.file import *
 from utils.kookApi import *
 from utils.cmd import botStatus
@@ -149,7 +149,7 @@ async def ticket(msg: Message):
             await msg.reply(f"您没有权限执行本命令！")
     except:
         _log.exception(f"Au:{msg.author_id} | ERR")
-        await msg.reply(f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```")
+        await msg.reply(f"ERR! [{get_time()}] tkcm\n```\n{traceback.format_exc()}\n```")
 
 
 # ticket系统,对已完成ticket进行备注
@@ -178,7 +178,7 @@ async def ticket_commit(msg: Message, tkno: str, *args):
         cm = CardMessage()
         c = Card(
             Module.Header(f"工单 ticket.{tkno} 已备注"),
-            Module.Context(f"信息更新于 {GetTime()}"),
+            Module.Context(f"信息更新于 {get_time()}"),
             Module.Divider(),
         )
         text = f"开启时间: {TKlog['data'][tkno]['start_time']}\n"
@@ -198,7 +198,7 @@ async def ticket_commit(msg: Message, tkno: str, *args):
         _log.info(f"[Cmt.TK] Au:{msg.author_id} - TkID:{tkno} = {cmt}")
     except:
         _log.exception(f"Au:{msg.author_id} | ERR")
-        err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        err_str = f"ERR! [{get_time()}] tkcm\n```\n{traceback.format_exc()}\n```"
         await msg.reply(f"{err_str}")
 
 
@@ -252,7 +252,7 @@ async def ticket_admin_role_add(msg: Message, role="", *arg):
         await msg.reply(f"添加错误，请确认您提交的是本服务器的角色id")
     except:
         _log.exception(f"Au:{msg.author_id} | ERR")
-        err_str = f"ERR! [{GetTime()}] tkcm\n```\n{traceback.format_exc()}\n```"
+        err_str = f"ERR! [{get_time()}] tkcm\n```\n{traceback.format_exc()}\n```"
         await msg.reply(f"{err_str}")
 
 
@@ -336,7 +336,7 @@ async def ticket_open_event(b: Bot, e: Event):
             # 4.在创建出来的频道发送消息
             text = f"(met){e.body['user_id']}(met) 发起了帮助，请等待管理猿的回复\n"
             text += f"工单编号/ID：{no}\n"
-            text += f"工单开启时间：{GetTime()}\n"
+            text += f"工单开启时间：{get_time()}\n"
             # 管理员角色id，修改配置文件中的admin_role部分
             for roles_id in TKconf["ticket"]["admin_role"]:
                 text += f"(rol){roles_id}(rol) "
@@ -385,7 +385,7 @@ async def ticket_open_event(b: Bot, e: Event):
             )
     except:
         _log.exception(f"ERR in TK.OPEN | E:{e.body}")
-        err_str = f"ERR! [{GetTime()}] TK.OPEN\n```\n{traceback.format_exc()}\n```"
+        err_str = f"ERR! [{get_time()}] TK.OPEN\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
         # 如果出现了错误，就把用户键值对给删了，允许创建第二个
         if e.body["user_id"] in TKlog["user_pair"]:
@@ -442,7 +442,7 @@ async def ticket_close_event(b: Bot, e: Event):
         _log.info(f"[TK.CLOSE] delete channel {e.body['target_id']} | {ret}")
 
         # 记录信息
-        TKlog["data"][no]["end_time"] = GetTime()  # 结束时间
+        TKlog["data"][no]["end_time"] = time.time()  # 结束时间
         TKlog["data"][no]["end_usr"] = e.body["user_id"]  # 是谁关闭的
         TKlog["data"][no][
             "end_usr_info"
@@ -454,9 +454,9 @@ async def ticket_close_event(b: Bot, e: Event):
         # 发送消息给开启该tk的用户和log频道
         cm = CardMessage()
         c = Card(Module.Header(f"工单 ticket.{no} 已关闭"), Module.Divider())
-        text = f"开启时间: {TKlog['data'][no]['start_time']}\n"
+        text = f"开启时间: {get_time_str_from_stamp(TKlog['data'][no]['start_time'])}\n" # 时间戳转str
         text += f"发起用户: (met){TKlog['data'][no]['usr_id']}(met)\n"
-        text += f"结束时间: {TKlog['data'][no]['end_time']}\n"
+        text += f"结束时间: {get_time()}\n" # 当前时间
         text += f"关闭用户: (met){TKlog['data'][no]['end_usr']}(met)\n"
         c.append(Module.Section(Element.Text(text, Types.Text.KMD)))
         cm.append(c)
@@ -467,8 +467,8 @@ async def ticket_close_event(b: Bot, e: Event):
             open_usr = await bot.client.fetch_user(TKlog["data"][no]["usr_id"])
             log_usr_sent = await open_usr.send(cm)  # 发送给用户
         except Exception as result:
-            if "无法" in str(result) or '屏蔽' in str(result):
-                _log.warning(f"ERR! [TK.CLOSE] Au:{TKlog['data'][no]['usr_id']} = {result}")
+            if "无法" in str(result) or '屏蔽' in str(result) or 'connect' in str(result):
+                _log.warning(f"ERR! [TK.CLOSE] Au:{TKlog['data'][no]['usr_id']} | {result}")
             else:
                 raise result
 
@@ -486,7 +486,7 @@ async def ticket_close_event(b: Bot, e: Event):
         )
     except:
         _log.exception(f"ERR in [TK.CLOSE] | E:{e.body}")
-        err_str = f"ERR! [{GetTime()}] [TK.CLOSE]\n```\n{traceback.format_exc()}\n```"
+        err_str = f"ERR! [{get_time()}] [TK.CLOSE]\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
 
 @bot.on_message()
@@ -521,7 +521,7 @@ async def ticket_msg_log(msg: Message):
         )
     except:
         _log.exception(f"ERR occur | Au:{msg.author_id}")
-        err_str = f"ERR! [{GetTime()}] log_tk_msg\n```\n{traceback.format_exc()}\n```"
+        err_str = f"ERR! [{get_time()}] log_tk_msg\n```\n{traceback.format_exc()}\n```"
         await debug_ch.send(err_str)
 
 async def get_ticket_lock_card(channel_id:str,tk_user_id:str,btn_user_id:str,header_text=""):
@@ -531,7 +531,7 @@ async def get_ticket_lock_card(channel_id:str,tk_user_id:str,btn_user_id:str,hea
     - btn_user:操作用户
     - header_text: 标题文字
     """
-    text = f"进入锁定状态，禁止用户发言\n操作时间：{GetTime()}\n"
+    text = f"进入锁定状态，禁止用户发言\n操作时间：{get_time()}\n"
     text+= f"工单用户：(met){tk_user_id}(met)\n"
     text+= f"操作用户：(met){btn_user_id}(met)"
     values = json.dumps({"type": TicketBtn.REOPEN,
@@ -571,7 +571,7 @@ async def ticket_channel_activate_check():
             # 获取工单开始时间的时间戳
             ticket_start_time = TKlog['data'][tkno]['start_time']
             assert(isinstance(ticket_start_time,type(time.time()))) # 不能是str
-            cur_time = GetTimeStamp() # 获取当前时间戳
+            cur_time = get_time_stamp() # 获取当前时间戳
 
             # 先构造卡片消息
             cm = await get_ticket_lock_card(ch_id,user_id,bot_id,f"工单超出「{OUTDATE_HOURS}」小时未活动")
@@ -626,7 +626,7 @@ async def ticket_reopen_event(b:Bot,e:Event):
         # 发送信息到该频道
         ch = await bot.client.fetch_public_channel(ch_id)
         c = Card(Module.Header(f"工单「{no}」重新激活"),Module.Divider())
-        text = f"重启时间：{GetTime()}\n"
+        text = f"重启时间：{get_time()}\n"
         text+= f"重启用户：(met){user_id}(met)\n"
         text+= f"用户ID：  {user_id}\n"
         c.append(Module.Section(Element.Text(text,Types.Text.KMD)))
@@ -738,7 +738,7 @@ async def kill(msg: Message, atbot="", *arg):
         if Botconf["ws"]:
             res = await bot_offline()  # 调用接口下线bot
         _log.info(
-            f"[KILL] [{GetTime()}] Au:{msg.author_id} | bot-off: {res}\n"
+            f"[KILL] [{get_time()}] Au:{msg.author_id} | bot-off: {res}\n"
         )  # 打印下线日志
         logFlush()  # 刷新缓冲区
         os._exit(0)  # 进程退出

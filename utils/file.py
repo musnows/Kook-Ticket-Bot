@@ -3,7 +3,7 @@ import os
 import sys
 import asyncio
 from khl import Message, Event,PrivateMessage
-from .gtime import GetTime
+from .gtime import get_time
 from .myLog import _log
 
 start_time = get_time()

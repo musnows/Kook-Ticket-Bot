@@ -79,11 +79,12 @@ async def help_cmd(msg: Message):
 # 判断用户是否在管理员身份组里面
 async def user_in_admin_role(guild_id: str, user_id: str, channel_id=""):
     """channel_id 必须为 ticket命令所在频道的id，并非每个工单频道的id"""
-    if guild_id != GUILD_ID:
-        return False  # 如果不是预先设置好的服务器直接返回错误，避免bot被邀请到其他服务器去
-    # 是master管理员
+    # 是master管理员，随便玩
     if user_id == TKconf["ticket"]["master_id"]:
         return True
+    # 如果不是预先设置好的服务器直接返回错误，避免bot被邀请到其他服务器去
+    if guild_id != GUILD_ID:
+        return False  
     # 通过服务器id和用户id获取用户在服务器中的身份组
     guild = await bot.client.fetch_guild(guild_id)
     user_roles = (await guild.fetch_user(user_id)).roles
@@ -105,10 +106,9 @@ async def user_in_admin_role(guild_id: str, user_id: str, channel_id=""):
 # ticket系统,发送卡片消息
 @bot.command(name="ticket", case_sensitive=False)
 async def ticket(msg: Message):
-    if not logging(msg):
-        return
     global TKconf
     try:
+        if not logging(msg): return
         if await user_in_admin_role(msg.ctx.guild.id, msg.author_id):
             ch_id = msg.ctx.channel.id  # 当前所处的频道id
             values = json.dumps(

@@ -1,7 +1,7 @@
 import traceback
 from khl import Event,Bot,Channel
 
-from .file import ColorIdDict,ColorIdPath,write_file,_log,TKconf
+from ..file import ColorIdDict,ColorIdPath,write_file,_log,TKconf
 
 async def save_userid_color(userid: str, emoji: str, uid: str):
     """用于记录使用表情回应获取ID颜色的用户

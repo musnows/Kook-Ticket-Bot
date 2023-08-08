@@ -3,7 +3,7 @@ import traceback
 from khl import Bot,Message
 from ..file import logging,_log
 from ..kookApi import status_active_game,status_active_music,status_delete
-from ..gtime import GetTime
+from ..gtime import get_time
 
 def init(bot:Bot):
     # 开始打游戏

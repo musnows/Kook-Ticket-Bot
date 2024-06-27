@@ -7,5 +7,4 @@ idsave_2.txt
 idsave_3.txt
 # log file
 __pycache__/
-log/
 *.log

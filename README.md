@@ -1,5 +1,7 @@
 # Kook-Ticket-Bot
 
+## 1.说明
+
 ![commit](https://img.shields.io/github/last-commit/musnows/Kook-Ticket-Bot) ![release](https://img.shields.io/github/v/release/musnows/Kook-Ticket-Bot) [![khl server](https://www.kaiheila.cn/api/v3/badge/guild?guild_id=3986996654014459&style=0)](https://kook.top/gpbTwZ)
 
 A ticket bot for KOOK, **自托管**表单/工单系统机器人
@@ -17,17 +19,21 @@ A ticket bot for KOOK, **自托管**表单/工单系统机器人
 
 本README尽量详细，争取让没有写过python代码，但了解基本编程环境搭建的用户能配置成功并正常使用bot！
 
-> 无须服务器和环境搭建，在replit上部署本bot！[WIKI教程](https://github.com/musnows/Kook-Ticket-Bot/wiki)
+> 无须服务器和环境搭建，在replit上部署本bot！[WIKI教程](https://github.com/musnows/Kook-Ticket-Bot/wiki)。由于replit策略变动，此教程内容已失效。
 
-如果您对本README还有完善的建议，十分欢迎您[加入KOOK帮助频道](https://kook.top/gpbTwZ)与我联系，亦或者在仓库提出issue
+如果您对本README还有完善的建议，十分欢迎您[加入KOOK帮助频道](https://kook.top/gpbTwZ)与我联系，亦或者在仓库提出issue。
 
-## help command
+## 2.帮助命令
 
-Bot的帮助命令为 `/tkhelp`
+Bot的帮助命令为 `/tkhelp`。
+
+![helpCmd](./screenshots/help_cmd.png)
 
 主要配置项均在配置文件中，后文有提及。
 
-## Requerments
+## 3.安装和运行
+
+### 3.1 Python 运行
 
 使用本机器人之前，请先确认您的python版本高于`3.9`, 安装以下依赖项
 
@@ -35,26 +41,89 @@ Bot的帮助命令为 `/tkhelp`
 pip3 install -r reqiurements.txt
 ```
 
-完成下方的配置后，就可以运行bot了 (注意 工作路径是code目录)
+完成下方的配置后，就可以运行bot了。
 
 ```
 python3 main.py
 ```
+
 如果是linux系统需要bot后台运行，使用如下命令
 
 ```
 nohup python3 -u main.py >> ./log/bot.log 2>&1 &
 ```
 
+### 3.2 Docker 运行
 
-## Config
+提供了一个docker容器供不太熟悉Linux命令行的用户使用，镜像名字为`musnows/kook-ticket-bot`。
+
+```
+docker pull musnows/kook-ticket-bot:latest
+```
+
+在使用镜像创建容器之前，您需要参考后文的教程，在本地准备一个存放配置文件的目录（包括`config.json`和`TicketConf.json`，并将该目录映射到容器内的`/app/config`中。
+
+示例运行命令如下
+
+```bash
+docker run -it -d \
+  -v 本地配置文件路径:/app/config \
+  --name=kook-ticket-bot \
+  musnows/kook-ticket-bot:latest
+```
+
+如果您需要使用Webhook的方式对接机器人到kook，则还需要暴露容器内的40000端口。另外，您还需要开启宿主机服务器上该端口的防火墙，以保证外网可以正常连接这个端口。
+
+```bash
+docker run -it -d \
+  -v 本地配置文件路径:/app/config \
+  -p 40000:40000 \
+  --name=kook-ticket-bot \
+  musnows/kook-ticket-bot:latest
+```
+
+如果您在创建docker容器后容器无法运行，且`docker logs 容器ID`的报错如下所示，这代表容器内的python没有办法通过DNS获取到kook服务器的IP地址。
+
+```
+aiohttp.client_exceptions.ClientConnectorError: Cannot connect to host www.kookapp.cn:443 ssl:default [Name or service not known]
+CRITICAL:main.py:loading_channel:763 | [BOT.START] 获取频道失败，请检查TicketConf文件中的debug_channel和log_channel
+```
+
+一般这种情况都是DNS的配置问题，可以在run的时候加上如下命令设置DNS为字节跳动的公共DNS服务器。
+
+```
+docker run -it -d \
+  -v 本地配置文件路径:/app/config \
+  -p 40000:40000 \
+  --dns 180.184.1.1 \
+  --name=kook-ticket-bot \
+  musnows/kook-ticket-bot:latest
+```
+
+使用run启动容器后，请使用`docker ps`检查机器人的容器是否正常运行，并使用如下命令查看日志，判断机器人是否正常启动。如果机器人的容器没有终止，且日志没有报错，那就可以去kook频道中尝试使用`/tkhelp`帮助命令呼出机器人了。
+
+```
+docker logs kook-ticket-bot
+```
+
+日志中出现如下两行，即为机器人正常启动。其中`fetch_public_channel success`为机器人启动成功标志。
+
+```
+[24-07-20 19:28:16] INFO:main.py:<module>:771 | [BOT] Start at 24-07-20 19:28:16
+[24-07-20 19:28:16] INFO:main.py:loading_channel:758 | [BOT.START] fetch_public_channel success
+```
+
+## 4.Config 配置项（必看）
 
 因为bot开机的时候就会打开下面的文件，若缺少字段，会影响bot的正常运行；
 
-目前在 [code/utils.py](./code/utils.py) 的底部打开了所有的配置文件，并添加了 `create_logFile()` 函数来自动创建不存在的配置文件。以下README中对配置文件的示例仅供参考，若运行后出现了自动创建文件失败的报错，请采用REAMDE中的描述手动创建配置文件！
+目前在 [utils/file.py](./utils/file.py) 的底部打开了所有的**配置文件**，并添加了 `create_log_file()` 函数来自动创建不存在的数据文件。
 
-### 1.bot token
-在 `code/config`路径中添加`config.json`，并在里面填入以下内容来初始化你的Bot
+以下README中对配置文件的示例仅供参考，若运行后出现了自动创建文件失败的报错，请采用REAMDE中的描述手动创建配置文件！
+
+### 4.1 机器人 token 配置
+
+在 `./config` 路径中添加`config.json`，并在里面填入[config-exp.json](./config/config-exp.json)的内容来初始化你的Bot。这些信息请在kook的[开发者后台-应用](https://developer.kookapp.cn/app/index)中获取。
 
 ```json
 {
@@ -67,13 +136,12 @@ nohup python3 -u main.py >> ./log/bot.log 2>&1 &
 
 使用webhook方式会开启一个回调地址，该操作需要有`公网ip`的机器才能进行
 
-* 如果你的机器人部署在无法外网访问（无公网ip）的机器上，请采用websocket链接方式
-* 如果你的机器人在云服务器上部署，可以采用webhook方式
-* 如果你的机器人在replit托管，必须采用webhook以保证repl不休眠
+* 如果你的机器人部署在无法外网访问（无公网ip）的机器上，请采用websocket链接方式；
+* 如果你的机器人在云服务器上部署，可以采用webhook或websocket方式；
 
-`config.json`中的`"ws"`字段为ws/wh的选项，如果使用webhook，请将该配置项改为 `false`
+配置文件`config.json`中的`"ws"`字段为websocket/webhook的选项，如果使用webhook，请将该配置项改为 `false`。
 
-* 修改配置后，记得在**kook机器人管理后台**修改机器人的链接配置
+* 修改本地配置后，记得在**kook机器人管理后台**修改机器人的链接配置；
 * webhook需要正确填写`"verify_token"`和`"encrypt"`配置项
 
 如果采用webhook的连接方式，需要在kook机器人后台填写回调地址（Callback Url）
@@ -82,9 +150,8 @@ nohup python3 -u main.py >> ./log/bot.log 2>&1 &
 # 默认情况下（记得开放服务器对应端口的防火墙）
 # 在main.py的开头，有机器人的初始化，内部有个port参数为端口
 http://公网ip:40000/khl-wh 
-# 如果是replit部署的，会给你提供一个url
-replit-url/khl-wh
 ```
+
 填写 `Callback Url` 之后，点击`重试`按钮，测试webhook是否正常。如果右下角显示`配置成功`，且没有红色字体的报错，那就是ok了！
 
 如果多次点击重试后，依旧失败，请先尝试将url粘贴至浏览器，是否能正常访问。
@@ -97,11 +164,11 @@ replit-url/khl-wh
 
 如果浏览器显示正常，但kook配置还是不行，请[加入KOOK帮助频道](https://kook.top/gpbTwZ)咨询！
 
-### 2.TicketConfig
+### 4.2 TicketConfig 工单配置
 
-在 `code/config`路径中新增`TicketConf.json`，并填入 [TicketConf-exp](./code/config/TicketConf-exp.json) 中的内容（也可以直接拷贝一份exp文件并重命名
+在 `./config` 路径中新增`TicketConf.json`，并填入 [TicketConf-exp](./config/TicketConf-exp.json) 中的内容（也可以直接拷贝一份exp文件并重命名
 
-请注意，配置文件里面的键值都不能修改
+请注意，配置文件里面的键值都不能修改！
 
 > 各类id获取办法：`kook设置-高级设置-打开开发者模式`；右键服务器头像，复制服务器id；右键用户头像即可复制用户id，右键频道/分组即可复制频道/分组id。
 > 
@@ -115,8 +182,7 @@ ticket机器人需要您创建一个**对全体成员不可见**的隐藏分组�
 
 <img src="./screenshots/tk2.png" wight="350px" height="220px" alt="bot发送附带关闭按钮的卡片">
 
-
-> `"channel_id"` 字段机器人自己会填写，不需要自己填
+`"channel_id"` 字段机器人自己会填写，不需要自己填
 
 #### 关于命令权限问题
 
@@ -142,6 +208,7 @@ ticket机器人需要您创建一个**对全体成员不可见**的隐藏分组�
   }
 }
 ```
+
 这样才能让拥有`摸鱼`角色的用户**张三**操作`/ticket`命令。
 
 
@@ -169,9 +236,9 @@ ticket机器人需要您创建一个**对全体成员不可见**的隐藏分组�
 
 目前实现了手动锁定工单，和重新激活工单的功能。
 
-### 3.TicketLog
+### 4.3 TicketLog
 
-> 新版本Log文件机器人会自动创建，以下只为留档参考，理论上无须手动创建文件。
+> 新版本Log文件机器人会自动创建，以下的配置项只为留档参考，理论上无须手动创建文件。
 
 在 `code/log` 路径中新增 `TicketLog.json`，并填入以下字段
 
@@ -190,7 +257,7 @@ ticket机器人需要您创建一个**对全体成员不可见**的隐藏分组�
 * msg_pair是一个键值对，用于记录bot在ticket频道发送的消息（关闭按钮），和ticket编号对应
 * data中是每一个编号的ticket的详细信息，包括开启时间、开启用户、关闭时间、关闭用户、管理员的评论等
 
-### 4.TicketMsgLog
+### 4.4 TicketMsgLog
 
 在 `code/log` 路径中新增 `TicketMsgLog.json`，并填入以下字段
 
@@ -235,7 +302,7 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 ----
 
-### 5.emoji/role
+### 4.5 emoji/role 上角色功能
 
 这个功能的作用是根据一条消息的表情回应，给用户上对应的角色。类似于YY里的上马甲。
 
@@ -257,13 +324,14 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 ```json
   "emoji": {
-    "乱写一个字符串，以后不要修改": {
+    "消息id": {
       "channel_id": "该消息的频道id",
       "data": {},
       "msg_id": "消息id"
     }
   }
 ```
+
 随后要做的是，在`data`里面添加emoji和角色id的对照表
 
 > 角色ID获取：设置内开启开发者模式后，进入服务器后台，右键角色复制id；
@@ -278,7 +346,7 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 ```json
   "emoji": {
-    "乱写一个字符串，以后不要修改": {
+    "消息id": {
       "data": {
         "❤": "对应的角色id-1",
         "🐷": "对应的角色id-2",
@@ -294,7 +362,7 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 ```json
   "emoji": {
-    "乱写一个字符串A，以后不要修改": {
+    "消息id A": {
       "data": {
         "❤": "对应的角色id-1",
         "🐷": "对应的角色id-2",
@@ -303,7 +371,7 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
       },
       "msg_id": "消息id A"
     },
-    "乱写一个字符串B，以后不要修改": {
+    "消息id B": {
       "data": {},
       "msg_id": "消息id B"
     }
@@ -319,7 +387,7 @@ ticket被关闭后，bot会向`TicketConf.json`中设置的log频道发送一张
 
 <img src="./screenshots/role1.png" wight="350px" height="210px" alt="bot上角色">
 
-### 6.gaming/singing
+### 4.6 gaming/singing 机器人在玩状态
 
 这两个命令都是用于控制机器人在玩状态的。其中机器人的游戏状态已经写死了几个游戏。
 

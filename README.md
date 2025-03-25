@@ -38,7 +38,7 @@ Bot的帮助命令为 `/tkhelp`。
 使用本机器人之前，请先确认您的python版本高于`3.9`, 安装以下依赖项
 
 ```
-pip3 install -r reqiurements.txt
+pip3 install -r requirements.txt
 ```
 
 完成下方的配置后，就可以运行bot了。
